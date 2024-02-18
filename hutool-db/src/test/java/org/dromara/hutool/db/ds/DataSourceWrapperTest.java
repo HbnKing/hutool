@@ -12,6 +12,7 @@
 
 package org.dromara.hutool.db.ds;
 
+import org.dromara.hutool.db.config.DbConfig;
 import org.dromara.hutool.db.ds.simple.SimpleDataSource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -20,8 +21,12 @@ public class DataSourceWrapperTest {
 
 	@Test
 	public void cloneTest(){
-		final SimpleDataSource simpleDataSource = new SimpleDataSource("jdbc:sqlite:test.db", "", "");
-		final DSWrapper wrapper = new DSWrapper(simpleDataSource, "test.driver");
+		final DbConfig dbConfig = DbConfig
+			.of("jdbc:sqlite:test.db", "", "")
+			.setDriver("test.driver");
+
+		final SimpleDataSource simpleDataSource = new SimpleDataSource(dbConfig);
+		final DSWrapper wrapper = new DSWrapper(simpleDataSource, dbConfig);
 
 		final DSWrapper clone = wrapper.clone();
 		Assertions.assertEquals("test.driver", clone.getDriver());

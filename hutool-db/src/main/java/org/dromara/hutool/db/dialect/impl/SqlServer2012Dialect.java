@@ -14,6 +14,7 @@ package org.dromara.hutool.db.dialect.impl;
 
 import org.dromara.hutool.core.text.StrUtil;
 import org.dromara.hutool.db.Page;
+import org.dromara.hutool.db.config.DbConfig;
 import org.dromara.hutool.db.dialect.DialectName;
 import org.dromara.hutool.db.sql.SqlBuilder;
 import org.dromara.hutool.db.sql.QuoteWrapper;
@@ -21,15 +22,19 @@ import org.dromara.hutool.db.sql.QuoteWrapper;
 /**
  * SQLServer2012 方言
  *
- * @author loolly
- *
+ * @author Looly
  */
 public class SqlServer2012Dialect extends AnsiSqlDialect {
 	private static final long serialVersionUID = -37598166015777797L;
 
-	public SqlServer2012Dialect() {
+	/**
+	 * 构造
+	 * @param dbConfig 数据库配置
+	 */
+	public SqlServer2012Dialect(final DbConfig dbConfig) {
+		super(dbConfig);
 		//双引号和中括号适用，双引号更广泛
-		 quoteWrapper = new QuoteWrapper('"');
+		quoteWrapper = new QuoteWrapper('"');
 	}
 
 	@Override
@@ -39,10 +44,10 @@ public class SqlServer2012Dialect extends AnsiSqlDialect {
 			find.append(" order by current_timestamp");
 		}
 		return find.append(" offset ")
-				.append(page.getStartPosition())//
-				.append(" row fetch next ")//row和rows同义词
-				.append(page.getPageSize())//
-				.append(" row only");//
+			.append(page.getStartPosition())//
+			.append(" row fetch next ")//row和rows同义词
+			.append(page.getPageSize())//
+			.append(" row only");//
 	}
 
 	@Override

@@ -27,7 +27,7 @@ import org.bouncycastle.crypto.signers.SM2Signer;
 import org.bouncycastle.crypto.signers.StandardDSAEncoding;
 import org.bouncycastle.util.BigIntegers;
 import org.bouncycastle.util.encoders.Hex;
-import org.dromara.hutool.core.codec.HexUtil;
+import org.dromara.hutool.core.codec.binary.HexUtil;
 import org.dromara.hutool.core.lang.Assert;
 import org.dromara.hutool.crypto.CryptoException;
 import org.dromara.hutool.crypto.SecureUtil;
@@ -46,9 +46,9 @@ import java.security.PublicKey;
  * <p>
  * 国密算法包括：
  * <ol>
- *     <li>非对称加密和签名：SM2</li>
- *     <li>摘要签名算法：SM3</li>
- *     <li>对称加密：SM4</li>
+ *     <li>非对称加密和签名：SM2，asymmetric</li>
+ *     <li>摘要签名算法：SM3，digest</li>
+ *     <li>对称加密：SM4，symmetric</li>
  * </ol>
  *
  * @author looly
@@ -347,7 +347,7 @@ public class SM2 extends AbstractAsymmetricCrypto<SM2> {
 	 * @return 签名
 	 */
 	public String signHex(final String dataHex, final String idHex) {
-		return HexUtil.encodeHexStr(sign(HexUtil.decodeHex(dataHex), HexUtil.decodeHex(idHex)));
+		return HexUtil.encodeStr(sign(HexUtil.decode(dataHex), HexUtil.decode(idHex)));
 	}
 
 	/**
@@ -379,7 +379,7 @@ public class SM2 extends AbstractAsymmetricCrypto<SM2> {
 	/**
 	 * 用公钥检验数字签名的合法性
 	 *
-	 * @param dataHex 数据签名后的数据
+	 * @param dataHex 后的数据
 	 * @param signHex 签名
 	 * @return 是否验证通过
 	 * @since 5.2.0
@@ -391,7 +391,7 @@ public class SM2 extends AbstractAsymmetricCrypto<SM2> {
 	/**
 	 * 用公钥检验数字签名的合法性
 	 *
-	 * @param data 签名后的数据
+	 * @param data 数据
 	 * @param sign 签名
 	 * @return 是否验证通过
 	 */
@@ -402,20 +402,20 @@ public class SM2 extends AbstractAsymmetricCrypto<SM2> {
 	/**
 	 * 用公钥检验数字签名的合法性
 	 *
-	 * @param dataHex 数据签名后的数据的Hex值
+	 * @param dataHex 数据的Hex值
 	 * @param signHex 签名的Hex值
 	 * @param idHex   ID的Hex值
 	 * @return 是否验证通过
 	 * @since 5.2.0
 	 */
 	public boolean verifyHex(final String dataHex, final String signHex, final String idHex) {
-		return verify(HexUtil.decodeHex(dataHex), HexUtil.decodeHex(signHex), HexUtil.decodeHex(idHex));
+		return verify(HexUtil.decode(dataHex), HexUtil.decode(signHex), HexUtil.decode(idHex));
 	}
 
 	/**
 	 * 用公钥检验数字签名的合法性
 	 *
-	 * @param data 数据签名后的数据
+	 * @param data 数据
 	 * @param sign 签名
 	 * @param id   可以为null，若为null，则默认withId为字节数组:"1234567812345678".getBytes()
 	 * @return 是否验证通过

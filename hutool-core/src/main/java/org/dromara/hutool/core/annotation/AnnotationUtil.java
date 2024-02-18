@@ -12,6 +12,7 @@
 
 package org.dromara.hutool.core.annotation;
 
+import org.dromara.hutool.core.annotation.elements.CombinationAnnotatedElement;
 import org.dromara.hutool.core.array.ArrayUtil;
 import org.dromara.hutool.core.classloader.ClassLoaderUtil;
 import org.dromara.hutool.core.exception.HutoolException;
@@ -68,11 +69,11 @@ public class AnnotationUtil {
 	 * @param annotationEle 注解元素
 	 * @return 组合注解元素
 	 */
-	public static CombinationAnnotationElement toCombination(final AnnotatedElement annotationEle) {
-		if (annotationEle instanceof CombinationAnnotationElement) {
-			return (CombinationAnnotationElement) annotationEle;
+	public static CombinationAnnotatedElement toCombination(final AnnotatedElement annotationEle) {
+		if (annotationEle instanceof CombinationAnnotatedElement) {
+			return (CombinationAnnotatedElement) annotationEle;
 		}
-		return new CombinationAnnotationElement(annotationEle);
+		return new CombinationAnnotatedElement(annotationEle);
 	}
 
 	/**
@@ -139,7 +140,7 @@ public class AnnotationUtil {
 			if (null == predicate) {
 				return toCombination(annotationEle).getAnnotations();
 			}
-			return CombinationAnnotationElement.of(annotationEle, predicate).getAnnotations();
+			return CombinationAnnotatedElement.of(annotationEle, predicate).getAnnotations();
 		}
 
 		final Annotation[] result = annotationEle.getAnnotations();
@@ -162,7 +163,7 @@ public class AnnotationUtil {
 	}
 
 	/**
-	 * 检查是否包含指定注解指定注解
+	 * 检查是否包含指定注解
 	 *
 	 * @param annotationEle  {@link AnnotatedElement}，可以是Class、Method、Field、Constructor、ReflectPermission
 	 * @param annotationType 注解类型
@@ -290,15 +291,8 @@ public class AnnotationUtil {
 	public static ElementType[] getTargetType(final Class<? extends Annotation> annotationType) {
 		final Target target = annotationType.getAnnotation(Target.class);
 		if (null == target) {
-			return new ElementType[]{ElementType.TYPE, //
-					ElementType.FIELD, //
-					ElementType.METHOD, //
-					ElementType.PARAMETER, //
-					ElementType.CONSTRUCTOR, //
-					ElementType.LOCAL_VARIABLE, //
-					ElementType.ANNOTATION_TYPE, //
-					ElementType.PACKAGE//
-			};
+			// 如果没有定义@target元注解，则表示支持所有节点
+			return ElementType.values();
 		}
 		return target.value();
 	}

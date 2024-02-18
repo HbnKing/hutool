@@ -29,7 +29,7 @@ import java.util.Map;
 /**
  * Http请求工具类
  *
- * @author xiaoleilu
+ * @author Looly
  */
 public class HttpUtil {
 
@@ -52,6 +52,37 @@ public class HttpUtil {
 	 */
 	public static boolean isHttp(final String url) {
 		return StrUtil.startWithIgnoreCase(url, "http:");
+	}
+
+	/**
+	 * 创建Http请求对象
+	 *
+	 * @param method 方法枚举{@link Method}
+	 * @param url    请求的URL，可以使HTTP或者HTTPS
+	 * @return {@link Request}
+	 */
+	public static Request createRequest(final String url, final Method method) {
+		return Request.of(url).method(method);
+	}
+
+	/**
+	 * 创建Http GET请求对象
+	 *
+	 * @param url 请求的URL，可以使HTTP或者HTTPS
+	 * @return {@link Request}
+	 */
+	public static Request createGet(final String url) {
+		return createRequest(url, Method.GET);
+	}
+
+	/**
+	 * 创建Http POST请求对象
+	 *
+	 * @param url 请求的URL，可以使HTTP或者HTTPS
+	 * @return {@link Request}
+	 */
+	public static Request createPost(final String url) {
+		return createRequest(url, Method.POST);
 	}
 
 	/**

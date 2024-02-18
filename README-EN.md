@@ -47,10 +47,6 @@
 -------------------------------------------------------------------------------
 
 <p align="center">
-	特别赞助：<br>
-	<a href="https://vue.misboot.com/#/user/Login?from=hutool4">
-		<img style="width: 45%" alt="" src="https://plus.hutool.cn/images/ad/misboot/misboot-banner.jpg"/>
-	</a>
 	<a href="#"><img style="width: 45%" alt="" src="https://plus.hutool.cn/images/zanzhu.jpg"/></a>
 </p>
 
@@ -113,7 +109,7 @@ Each module can be introduced individually, or all modules can be introduced by 
 
 ## 📝Doc
 
-[📘Chinese documentation](https://www.hutool.cn/docs/)
+[📘Chinese documentation](https://doc.hutool.cn/pages/index/)
 
 [📘Chinese back-up documentation](https://plus.hutool.cn/docs/#/)
 
@@ -148,18 +144,18 @@ We provide the T-Shirt and Sweater with Hutool Logo, please visit the shop：
 <dependency>
     <groupId>org.dromara.hutool</groupId>
     <artifactId>hutool-all</artifactId>
-    <version>6.0.0-M9</version>
+    <version>6.0.0-M12</version>
 </dependency>
 ```
 
 ### 🍐Gradle
 ```
-implementation 'org.dromara.hutool:hutool-all:6.0.0-M9'
+implementation 'org.dromara.hutool:hutool-all:6.0.0-M12'
 ```
 
 ## 📥Download
 
-- [Maven Repo](https://repo1.maven.org/maven2/cn/hutool/hutool-all/6.0.0-M9/)
+- [Maven Repo](https://repo1.maven.org/maven2/cn/hutool/hutool-all/6.0.0-M12/)
 
 > 🔔️note:
 > Hutool 5.x supports JDK8+ and is not tested on Android platforms, and cannot guarantee that all tool classes or tool methods are available.

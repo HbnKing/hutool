@@ -15,24 +15,30 @@ package org.dromara.hutool.db.dialect.impl;
 import org.dromara.hutool.core.text.StrUtil;
 import org.dromara.hutool.db.Entity;
 import org.dromara.hutool.db.Page;
-import org.dromara.hutool.db.StatementUtil;
+import org.dromara.hutool.db.sql.StatementUtil;
+import org.dromara.hutool.db.config.DbConfig;
 import org.dromara.hutool.db.dialect.DialectName;
-import org.dromara.hutool.db.sql.SqlBuilder;
 import org.dromara.hutool.db.sql.QuoteWrapper;
+import org.dromara.hutool.db.sql.SqlBuilder;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 /**
  * MySQL方言
- * @author loolly
  *
+ * @author loolly
  */
-public class MysqlDialect extends AnsiSqlDialect{
+public class MysqlDialect extends AnsiSqlDialect {
 	private static final long serialVersionUID = -3734718212043823636L;
 
-	public MysqlDialect() {
+	/**
+	 * 构造
+	 *
+	 * @param dbConfig 数据库配置
+	 */
+	public MysqlDialect(final DbConfig dbConfig) {
+		super(dbConfig);
 		quoteWrapper = new QuoteWrapper('`');
 	}
 
@@ -57,11 +63,10 @@ public class MysqlDialect extends AnsiSqlDialect{
 	 * @param entity 数据实体类（包含表名）
 	 * @param keys   此参数无效
 	 * @return PreparedStatement
-	 * @throws SQLException SQL执行异常
 	 * @since 5.7.20
 	 */
 	@Override
-	public PreparedStatement psForUpsert(final Connection conn, final Entity entity, final String... keys) throws SQLException {
+	public PreparedStatement psForUpsert(final Connection conn, final Entity entity, final String... keys) {
 		SqlBuilder.validateEntity(entity);
 		final SqlBuilder builder = SqlBuilder.of(quoteWrapper);
 
@@ -70,7 +75,7 @@ public class MysqlDialect extends AnsiSqlDialect{
 		final StringBuilder updateHolder = new StringBuilder();
 
 		// 构建字段部分和参数占位符部分
-		entity.forEach((field, value)->{
+		entity.forEach((field, value) -> {
 			if (StrUtil.isNotBlank(field)) {
 				if (fieldsPart.length() > 0) {
 					// 非第一个参数，追加逗号
@@ -92,13 +97,13 @@ public class MysqlDialect extends AnsiSqlDialect{
 			tableName = this.quoteWrapper.wrap(tableName);
 		}
 		builder.append("INSERT INTO ").append(tableName)
-				// 字段列表
-				.append(" (").append(fieldsPart)
-				// 更新值列表
-				.append(") VALUES (").append(placeHolder)
-				// 主键冲突后的更新操作
-				.append(") ON DUPLICATE KEY UPDATE ").append(updateHolder);
+			// 字段列表
+			.append(" (").append(fieldsPart)
+			// 更新值列表
+			.append(") VALUES (").append(placeHolder)
+			// 主键冲突后的更新操作
+			.append(") ON DUPLICATE KEY UPDATE ").append(updateHolder);
 
-		return StatementUtil.prepareStatement(conn, builder);
+		return StatementUtil.prepareStatement(false, this.dbConfig, conn, builder.build(), builder.getParamValueArray());
 	}
 }

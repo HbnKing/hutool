@@ -14,11 +14,14 @@ package org.dromara.hutool.core.util;
 
 import org.dromara.hutool.core.io.buffer.FastByteBuffer;
 import org.dromara.hutool.core.math.NumberUtil;
+import org.dromara.hutool.core.text.StrUtil;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.DoubleAdder;
@@ -210,14 +213,14 @@ public class ByteUtil {
 	public static int toInt(final byte[] bytes, final int start, final ByteOrder byteOrder) {
 		if (ByteOrder.LITTLE_ENDIAN == byteOrder) {
 			return bytes[start] & 0xFF | //
-					(bytes[1 + start] & 0xFF) << 8 | //
-					(bytes[2 + start] & 0xFF) << 16 | //
-					(bytes[3 + start] & 0xFF) << 24; //
+				(bytes[1 + start] & 0xFF) << 8 | //
+				(bytes[2 + start] & 0xFF) << 16 | //
+				(bytes[3 + start] & 0xFF) << 24; //
 		} else {
 			return bytes[3 + start] & 0xFF | //
-					(bytes[2 + start] & 0xFF) << 8 | //
-					(bytes[1 + start] & 0xFF) << 16 | //
-					(bytes[start] & 0xFF) << 24; //
+				(bytes[2 + start] & 0xFF) << 8 | //
+				(bytes[1 + start] & 0xFF) << 16 | //
+				(bytes[start] & 0xFF) << 24; //
 		}
 
 	}
@@ -245,18 +248,18 @@ public class ByteUtil {
 
 		if (ByteOrder.LITTLE_ENDIAN == byteOrder) {
 			return new byte[]{ //
-					(byte) (intValue & 0xFF), //
-					(byte) ((intValue >> 8) & 0xFF), //
-					(byte) ((intValue >> 16) & 0xFF), //
-					(byte) ((intValue >> 24) & 0xFF) //
+				(byte) (intValue & 0xFF), //
+				(byte) ((intValue >> 8) & 0xFF), //
+				(byte) ((intValue >> 16) & 0xFF), //
+				(byte) ((intValue >> 24) & 0xFF) //
 			};
 
 		} else {
 			return new byte[]{ //
-					(byte) ((intValue >> 24) & 0xFF), //
-					(byte) ((intValue >> 16) & 0xFF), //
-					(byte) ((intValue >> 8) & 0xFF), //
-					(byte) (intValue & 0xFF) //
+				(byte) ((intValue >> 24) & 0xFF), //
+				(byte) ((intValue >> 16) & 0xFF), //
+				(byte) ((intValue >> 8) & 0xFF), //
+				(byte) (intValue & 0xFF) //
 			};
 		}
 
@@ -477,7 +480,7 @@ public class ByteUtil {
 			return ByteUtil.toBytes(number.shortValue(), byteOrder);
 		} else if (number instanceof Float) {
 			return toBytes(number.floatValue(), byteOrder);
-		} else if(number instanceof BigInteger){
+		} else if (number instanceof BigInteger) {
 			return ((BigInteger) number).toByteArray();
 		} else {
 			return toBytes(number.doubleValue(), byteOrder);
@@ -617,7 +620,7 @@ public class ByteUtil {
 	 * @return 连接后的byte[]
 	 * @since 6.0.0
 	 */
-	public static byte[] concat(final byte[]... byteArrays){
+	public static byte[] concat(final byte[]... byteArrays) {
 		int totalLength = 0;
 		for (final byte[] byteArray : byteArrays) {
 			totalLength += byteArray.length;
@@ -628,5 +631,41 @@ public class ByteUtil {
 			buffer.append(byteArray);
 		}
 		return buffer.toArrayZeroCopyIfPossible();
+	}
+
+	/**
+	 * 统计byte中位数为1的个数
+	 *
+	 * @param buf 无符号bytes
+	 * @return 为 1 的个数
+	 * @see Integer#bitCount(int)
+	 */
+	public static int bitCount(final byte[] buf) {
+		int sum = 0;
+		for (final byte b : buf) {
+			sum += Integer.bitCount((b & 0xFF));
+		}
+		return sum;
+	}
+
+	/**
+	 * 统计无符号bytes转为bit位数为1的索引集合
+	 *
+	 * @param bytes 无符号bytes
+	 * @return 位数为1的索引集合
+	 */
+	public static List<Integer> toUnsignedBitIndex(final byte[] bytes) {
+		final List<Integer> idxList = new LinkedList<>();
+		final StringBuilder sb = new StringBuilder();
+		for (final byte b : bytes) {
+			sb.append(StrUtil.padPre(Integer.toBinaryString((b & 0xFF)), 8, "0"));
+		}
+		final String bitStr = sb.toString();
+		for (int i = 0; i < bitStr.length(); i++) {
+			if (bitStr.charAt(i) == '1') {
+				idxList.add(i);
+			}
+		}
+		return idxList;
 	}
 }

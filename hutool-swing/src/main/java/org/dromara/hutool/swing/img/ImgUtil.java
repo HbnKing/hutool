@@ -445,7 +445,7 @@ public class ImgUtil {
 	 * 图像切割（指定切片的行数和列数）
 	 *
 	 * @param srcImageFile 源图像文件
-	 * @param targetDir      切片目标文件夹
+	 * @param targetDir    切片目标文件夹
 	 * @param formatName   格式名称，即图片格式后缀
 	 * @param rows         目标切片行数。默认2，必须是范围 [1, 20] 之内
 	 * @param cols         目标切片列数。默认2，必须是范围 [1, 20] 之内
@@ -489,7 +489,7 @@ public class ImgUtil {
 			for (int j = 0; j < cols; j++) {
 				tag = cut(srcImage, new Rectangle(j * targetWidth, i * targetHeight, targetWidth, targetHeight));
 				// 输出为文件
-				write(tag, new File(destDir, "_r" + i + "_c" + j + "." +  formatName));
+				write(tag, new File(destDir, "_r" + i + "_c" + j + "." + formatName));
 			}
 		}
 	}
@@ -500,61 +500,49 @@ public class ImgUtil {
 	/**
 	 * 图像类型转换：GIF=》JPG、GIF=》PNG、PNG=》JPG、PNG=》GIF(X)、BMP=》PNG
 	 *
-	 * @param srcImageFile  源图像文件
-	 * @param destImageFile 目标图像文件
+	 * @param srcImageFile    源图像文件
+	 * @param targetImageFile 目标图像文件
 	 */
-	public static void convert(final File srcImageFile, final File destImageFile) {
+	public static void convert(final File srcImageFile, final File targetImageFile) {
 		Assert.notNull(srcImageFile);
-		Assert.notNull(destImageFile);
-		Assert.isFalse(srcImageFile.equals(destImageFile), "Src file is equals to dest file!");
+		Assert.notNull(targetImageFile);
+		Assert.isFalse(srcImageFile.equals(targetImageFile), "Src file is equals to dest file!");
 
 		// 通过扩展名检查图片类型，相同类型直接复制
 		final String srcExtName = FileNameUtil.extName(srcImageFile);
-		final String destExtName = FileNameUtil.extName(destImageFile);
+		final String destExtName = FileNameUtil.extName(targetImageFile);
 		if (StrUtil.equalsIgnoreCase(srcExtName, destExtName)) {
 			// 扩展名相同直接复制文件
-			FileUtil.copy(srcImageFile, destImageFile, true);
+			FileUtil.copy(srcImageFile, targetImageFile, true);
 		}
 
-		ImageOutputStream imageOutputStream = null;
-		try {
-			imageOutputStream = getImageOutputStream(destImageFile);
-			convert(read(srcImageFile), destExtName, imageOutputStream, StrUtil.equalsIgnoreCase(IMAGE_TYPE_PNG, srcExtName));
-		} finally {
-			IoUtil.closeQuietly(imageOutputStream);
-		}
+		Img.from(srcImageFile).write(targetImageFile);
 	}
 
 	/**
 	 * 图像类型转换：GIF=》JPG、GIF=》PNG、PNG=》JPG、PNG=》GIF(X)、BMP=》PNG<br>
 	 * 此方法并不关闭流
 	 *
-	 * @param srcStream  源图像流
-	 * @param formatName 包含格式非正式名称的 String：如JPG、JPEG、GIF等
-	 * @param destStream 目标图像输出流
+	 * @param srcStream    源图像流
+	 * @param formatName   包含格式非正式名称的 String：如JPG、JPEG、GIF等
+	 * @param targetStream 目标图像输出流
 	 * @since 3.0.9
 	 */
-	public static void convert(final InputStream srcStream, final String formatName, final OutputStream destStream) {
-		write(read(srcStream), formatName, getImageOutputStream(destStream));
+	public static void convert(final InputStream srcStream, final String formatName, final OutputStream targetStream) {
+		write(read(srcStream), formatName, getImageOutputStream(targetStream));
 	}
 
 	/**
 	 * 图像类型转换：GIF=》JPG、GIF=》PNG、PNG=》JPG、PNG=》GIF(X)、BMP=》PNG<br>
 	 * 此方法并不关闭流
 	 *
-	 * @param srcImage        源图像流
-	 * @param formatName      包含格式非正式名称的 String：如JPG、JPEG、GIF等
-	 * @param destImageStream 目标图像输出流
-	 * @param isSrcPng        源图片是否为PNG格式
+	 * @param srcImage          源图像流
+	 * @param formatName        包含格式非正式名称的 String：如JPG、JPEG、GIF等
+	 * @param targetImageStream 目标图像输出流
 	 * @since 4.1.14
 	 */
-	public static void convert(final Image srcImage, final String formatName, final ImageOutputStream destImageStream, final boolean isSrcPng) {
-		final BufferedImage src = toBufferedImage(srcImage, isSrcPng ? BufferedImage.TYPE_INT_ARGB : BufferedImage.TYPE_INT_RGB);
-		try {
-			ImageIO.write(src, formatName, destImageStream);
-		} catch (final IOException e) {
-			throw new IORuntimeException(e);
-		}
+	public static void convert(final Image srcImage, final String formatName, final ImageOutputStream targetImageStream) {
+		Img.from(srcImage).setTargetImageType(formatName).write(targetImageStream);
 	}
 	// endregion
 
@@ -738,14 +726,9 @@ public class ImgUtil {
 	 * @param imageFile 源图像文件
 	 * @param destFile  目标图像文件
 	 * @param pressText 水印文字
-	 * @param color     水印的字体颜色
-	 * @param font      {@link Font} 字体相关信息，如果默认则为{@code null}
-	 * @param x         修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param y         修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param alpha     透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
 	 */
-	public static void pressText(final File imageFile, final File destFile, final String pressText, final Color color, final Font font, final int x, final int y, final float alpha) {
-		pressText(read(imageFile), destFile, pressText, color, font, x, y, alpha);
+	public static void pressText(final File imageFile, final File destFile, final DisplayText pressText) {
+		pressText(read(imageFile), destFile, pressText);
 	}
 
 	/**
@@ -754,32 +737,10 @@ public class ImgUtil {
 	 *
 	 * @param srcStream  源图像流
 	 * @param destStream 目标图像流
-	 * @param pressText  水印文字
-	 * @param color      水印的字体颜色
-	 * @param font       {@link Font} 字体相关信息，如果默认则为{@code null}
-	 * @param x          修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param y          修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param alpha      透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
+	 * @param pressText  水印文本信息
 	 */
-	public static void pressText(final InputStream srcStream, final OutputStream destStream, final String pressText, final Color color, final Font font, final int x, final int y, final float alpha) {
-		pressText(read(srcStream), getImageOutputStream(destStream), pressText, color, font, x, y, alpha);
-	}
-
-	/**
-	 * 给图片添加文字水印<br>
-	 * 此方法并不关闭流
-	 *
-	 * @param srcStream  源图像流
-	 * @param destStream 目标图像流
-	 * @param pressText  水印文字
-	 * @param color      水印的字体颜色
-	 * @param font       {@link Font} 字体相关信息，如果默认则为{@code null}
-	 * @param x          修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param y          修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param alpha      透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
-	 */
-	public static void pressText(final ImageInputStream srcStream, final ImageOutputStream destStream, final String pressText, final Color color, final Font font, final int x, final int y, final float alpha) {
-		pressText(read(srcStream), destStream, pressText, color, font, x, y, alpha);
+	public static void pressText(final InputStream srcStream, final OutputStream destStream, final DisplayText pressText) {
+		pressText(read(srcStream), getImageOutputStream(destStream), pressText);
 	}
 
 	/**
@@ -788,17 +749,12 @@ public class ImgUtil {
 	 *
 	 * @param srcImage  源图像
 	 * @param destFile  目标流
-	 * @param pressText 水印文字
-	 * @param color     水印的字体颜色
-	 * @param font      {@link Font} 字体相关信息，如果默认则为{@code null}
-	 * @param x         修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param y         修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param alpha     透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
+	 * @param pressText 水印文字信息
 	 * @throws IORuntimeException IO异常
 	 * @since 3.2.2
 	 */
-	public static void pressText(final Image srcImage, final File destFile, final String pressText, final Color color, final Font font, final int x, final int y, final float alpha) throws IORuntimeException {
-		write(pressText(srcImage, pressText, color, font, x, y, alpha), destFile);
+	public static void pressText(final Image srcImage, final File destFile, final DisplayText pressText) throws IORuntimeException {
+		write(pressText(srcImage, pressText), destFile);
 	}
 
 	/**
@@ -807,17 +763,12 @@ public class ImgUtil {
 	 *
 	 * @param srcImage  源图像
 	 * @param to        目标流
-	 * @param pressText 水印文字
-	 * @param color     水印的字体颜色
-	 * @param font      {@link Font} 字体相关信息，如果默认则为{@code null}
-	 * @param x         修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param y         修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param alpha     透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
+	 * @param pressText 水印文字信息
 	 * @throws IORuntimeException IO异常
 	 * @since 3.2.2
 	 */
-	public static void pressText(final Image srcImage, final OutputStream to, final String pressText, final Color color, final Font font, final int x, final int y, final float alpha) throws IORuntimeException {
-		pressText(srcImage, getImageOutputStream(to), pressText, color, font, x, y, alpha);
+	public static void pressText(final Image srcImage, final OutputStream to, final DisplayText pressText) throws IORuntimeException {
+		pressText(srcImage, getImageOutputStream(to), pressText);
 	}
 
 	/**
@@ -826,16 +777,11 @@ public class ImgUtil {
 	 *
 	 * @param srcImage        源图像
 	 * @param destImageStream 目标图像流
-	 * @param pressText       水印文字
-	 * @param color           水印的字体颜色
-	 * @param font            {@link Font} 字体相关信息，如果默认则为{@code null}
-	 * @param x               修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param y               修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param alpha           透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
+	 * @param pressText       水印文字信息
 	 * @throws IORuntimeException IO异常
 	 */
-	public static void pressText(final Image srcImage, final ImageOutputStream destImageStream, final String pressText, final Color color, final Font font, final int x, final int y, final float alpha) throws IORuntimeException {
-		writeJpg(pressText(srcImage, pressText, color, font, x, y, alpha), destImageStream);
+	public static void pressText(final Image srcImage, final ImageOutputStream destImageStream, final DisplayText pressText) throws IORuntimeException {
+		writeJpg(pressText(srcImage, pressText), destImageStream);
 	}
 
 	/**
@@ -843,18 +789,31 @@ public class ImgUtil {
 	 * 此方法并不关闭流
 	 *
 	 * @param srcImage  源图像
-	 * @param pressText 水印文字
-	 * @param color     水印的字体颜色
-	 * @param font      {@link Font} 字体相关信息，如果默认则为{@code null}
-	 * @param x         修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param y         修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param alpha     透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
+	 * @param pressText 水印文字信息
 	 * @return 处理后的图像
 	 * @since 3.2.2
 	 */
-	public static Image pressText(final Image srcImage, final String pressText, final Color color, final Font font, final int x, final int y, final float alpha) {
-		return Img.from(srcImage).pressText(pressText, color, font, x, y, alpha).getImg();
+	public static Image pressText(final Image srcImage, final DisplayText pressText) {
+		return Img.from(srcImage).pressText(pressText).getImg();
 	}
+
+	/**
+	 * 给图片添加全屏文字水印<br>
+	 * 此方法并不关闭流
+	 *
+	 * @param srcImage   源图像
+	 * @param pressText  水印文字
+	 * @param color      水印的字体颜色
+	 * @param font       {@link Font} 字体相关信息，如果默认则为{@code null}
+	 * @param lineHeight 行高
+	 * @param degree     旋转角度，（单位：弧度），以圆点（0,0）为圆心，正代表顺时针，负代表逆时针
+	 * @param alpha      透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
+	 * @return 处理后的图像
+	 */
+	public static Image pressTextFull(final Image srcImage, final String pressText, final Color color, final Font font, final int lineHeight, final int degree, final float alpha) {
+		return Img.from(srcImage).pressTextFull(pressText, color, font, lineHeight, degree, alpha).getImg();
+	}
+
 
 	/**
 	 * 给图片添加图片水印
@@ -883,22 +842,6 @@ public class ImgUtil {
 	 */
 	public static void pressImage(final InputStream srcStream, final OutputStream destStream, final Image pressImg, final int x, final int y, final float alpha) {
 		pressImage(read(srcStream), getImageOutputStream(destStream), pressImg, x, y, alpha);
-	}
-
-	/**
-	 * 给图片添加图片水印<br>
-	 * 此方法并不关闭流
-	 *
-	 * @param srcStream  源图像流
-	 * @param destStream 目标图像流
-	 * @param pressImg   水印图片，可以使用{@link ImageIO#read(File)}方法读取文件
-	 * @param x          修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param y          修正值。 默认在中间，偏移量相对于中间偏移
-	 * @param alpha      透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
-	 * @throws IORuntimeException IO异常
-	 */
-	public static void pressImage(final ImageInputStream srcStream, final ImageOutputStream destStream, final Image pressImg, final int x, final int y, final float alpha) throws IORuntimeException {
-		pressImage(read(srcStream), destStream, pressImg, x, y, alpha);
 	}
 
 	/**
@@ -979,6 +922,54 @@ public class ImgUtil {
 	 */
 	public static Image pressImage(final Image srcImage, final Image pressImg, final Rectangle rectangle, final float alpha) {
 		return Img.from(srcImage).pressImage(pressImg, rectangle, alpha).getImg();
+	}
+
+	/**
+	 * 给图片添加全屏图片水印<br>
+	 *
+	 * @param imageFile      源图像文件
+	 * @param destFile       目标图像文件
+	 * @param pressImageFile 水印图像文件
+	 * @param lineHeight     行高
+	 * @param degree         水印图像旋转角度，（单位：弧度），以圆点（0,0）为圆心，正代表顺时针，负代表逆时针
+	 * @param alpha          透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
+	 * @throws IORuntimeException IO异常
+	 */
+	public static void pressImageFull(final File imageFile, final File destFile, final File pressImageFile,
+									  final int lineHeight, final int degree, final float alpha) throws IORuntimeException {
+		write(pressImageFull(read(imageFile), read(pressImageFile), lineHeight, degree, alpha), destFile);
+	}
+
+	/**
+	 * 给图片添加全屏图像水印<br>
+	 * 此方法并不关闭流
+	 *
+	 * @param srcStream   源图像流
+	 * @param destStream  目标图像流
+	 * @param pressStream 水印图像流
+	 * @param lineHeight  行高
+	 * @param degree      水印图像旋转角度，（单位：弧度），以圆点（0,0）为圆心，正代表顺时针，负代表逆时针
+	 * @param alpha       透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
+	 * @throws IORuntimeException IO异常
+	 */
+	public static void pressImageFull(final InputStream srcStream, final OutputStream destStream,
+									  final InputStream pressStream, final int lineHeight, final int degree, final float alpha) throws IORuntimeException {
+		writeJpg(pressImageFull(read(srcStream), read(pressStream), lineHeight, degree, alpha), destStream);
+	}
+
+	/**
+	 * 给图片添加全屏图像水印<br>
+	 * 此方法并不关闭流
+	 *
+	 * @param srcImage   源图像
+	 * @param pressImage 水印图像
+	 * @param lineHeight 行高
+	 * @param degree     水印图像旋转角度，（单位：弧度），以圆点（0,0）为圆心，正代表顺时针，负代表逆时针，（单位：弧度），以圆点（0,0）为圆心，正代表顺时针，负代表逆时针
+	 * @param alpha      透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
+	 * @return 处理后的图像
+	 */
+	public static Image pressImageFull(final Image srcImage, final Image pressImage, final int lineHeight, final int degree, final float alpha) {
+		return Img.from(srcImage).pressImageFull(pressImage, lineHeight, degree, alpha).getImg();
 	}
 	// endregion
 
@@ -1139,7 +1130,7 @@ public class ImgUtil {
 	 * {@link Image} 转 {@link RenderedImage}<br>
 	 * 首先尝试强转，否则新建一个{@link BufferedImage}后重新绘制，使用 {@link BufferedImage#TYPE_INT_RGB} 模式。
 	 *
-	 * @param img {@link Image}
+	 * @param img       {@link Image}
 	 * @param imageType 目标图片类型，例如jpg或png等
 	 * @return {@link BufferedImage}
 	 * @since 4.3.2
@@ -1156,7 +1147,7 @@ public class ImgUtil {
 	 * {@link Image} 转 {@link BufferedImage}<br>
 	 * 首先尝试强转，否则新建一个{@link BufferedImage}后重新绘制，使用 imageType 模式
 	 *
-	 * @param img {@link Image}
+	 * @param img       {@link Image}
 	 * @param imageType 目标图片类型，例如jpg或png等
 	 * @return {@link BufferedImage}
 	 */
@@ -1572,7 +1563,7 @@ public class ImgUtil {
 	 *
 	 * @param image           {@link Image}
 	 * @param imageType       图片类型（图片扩展名），{@code null}表示使用RGB模式（JPG）
-	 * @param out 写出到的目标流
+	 * @param out             写出到的目标流
 	 * @param quality         质量，数字为0~1（不包括0和1）表示质量压缩比，除此数字外设置表示不压缩
 	 * @param backgroundColor 背景色{@link Color}
 	 * @throws IORuntimeException IO异常
@@ -1587,10 +1578,10 @@ public class ImgUtil {
 	/**
 	 * 通过{@link ImageWriter}写出图片到输出流
 	 *
-	 * @param image   图片
+	 * @param image     图片
 	 * @param imageType 图片类型
-	 * @param output  输出的Image流{@link ImageOutputStream}
-	 * @param quality 质量，数字为0~1（不包括0和1）表示质量压缩比，除此数字外设置表示不压缩
+	 * @param output    输出的Image流{@link ImageOutputStream}
+	 * @param quality   质量，数字为0~1（不包括0和1）表示质量压缩比，除此数字外设置表示不压缩
 	 * @since 4.3.2
 	 */
 	public static void write(final Image image, final String imageType, final ImageOutputStream output, final float quality) {

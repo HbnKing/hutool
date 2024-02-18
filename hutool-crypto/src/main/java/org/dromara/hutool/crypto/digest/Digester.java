@@ -13,8 +13,8 @@
 package org.dromara.hutool.crypto.digest;
 
 import org.dromara.hutool.core.array.ArrayUtil;
-import org.dromara.hutool.core.codec.HexUtil;
-import org.dromara.hutool.core.func.SimpleWrapper;
+import org.dromara.hutool.core.codec.binary.HexUtil;
+import org.dromara.hutool.core.lang.wrapper.SimpleWrapper;
 import org.dromara.hutool.core.io.IORuntimeException;
 import org.dromara.hutool.core.io.IoUtil;
 import org.dromara.hutool.core.io.file.FileUtil;
@@ -196,7 +196,7 @@ public class Digester extends SimpleWrapper<MessageDigest> implements Serializab
 	 * @since 4.6.0
 	 */
 	public String digestHex(final String data, final Charset charset) {
-		return HexUtil.encodeHexStr(digest(data, charset));
+		return HexUtil.encodeStr(digest(data, charset));
 	}
 
 	/**
@@ -235,7 +235,7 @@ public class Digester extends SimpleWrapper<MessageDigest> implements Serializab
 	 * @return 摘要
 	 */
 	public String digestHex(final File file) {
-		return HexUtil.encodeHexStr(digest(file));
+		return HexUtil.encodeStr(digest(file));
 	}
 
 	/**
@@ -253,7 +253,7 @@ public class Digester extends SimpleWrapper<MessageDigest> implements Serializab
 			// 加盐在末尾，自动忽略空盐值
 			result = doDigest(data, this.salt);
 		} else if (ArrayUtil.isNotEmpty(this.salt)) {
-			final MessageDigest digest = getRaw();
+			final MessageDigest digest = this.raw;
 			// 加盐在中间
 			digest.update(data, 0, this.saltPosition);
 			digest.update(this.salt);
@@ -274,7 +274,7 @@ public class Digester extends SimpleWrapper<MessageDigest> implements Serializab
 	 * @return 摘要
 	 */
 	public String digestHex(final byte[] data) {
-		return HexUtil.encodeHexStr(digest(data));
+		return HexUtil.encodeStr(digest(data));
 	}
 
 	/**
@@ -295,7 +295,7 @@ public class Digester extends SimpleWrapper<MessageDigest> implements Serializab
 	 * @return 摘要
 	 */
 	public String digestHex(final InputStream data) {
-		return HexUtil.encodeHexStr(digest(data));
+		return HexUtil.encodeStr(digest(data));
 	}
 
 	/**
@@ -334,7 +334,7 @@ public class Digester extends SimpleWrapper<MessageDigest> implements Serializab
 	 * @return 摘要
 	 */
 	public String digestHex(final InputStream data, final int bufferLength) {
-		return HexUtil.encodeHexStr(digest(data, bufferLength));
+		return HexUtil.encodeStr(digest(data, bufferLength));
 	}
 
 	/**

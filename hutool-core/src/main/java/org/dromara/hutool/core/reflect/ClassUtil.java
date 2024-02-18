@@ -21,11 +21,10 @@ import org.dromara.hutool.core.io.file.FileUtil;
 import org.dromara.hutool.core.io.resource.ResourceUtil;
 import org.dromara.hutool.core.net.url.UrlDecoder;
 import org.dromara.hutool.core.net.url.UrlUtil;
+import org.dromara.hutool.core.stream.EasyStream;
 import org.dromara.hutool.core.text.CharUtil;
 import org.dromara.hutool.core.text.StrUtil;
 import org.dromara.hutool.core.text.split.SplitUtil;
-import org.dromara.hutool.core.tree.hierarchy.HierarchyIteratorUtil;
-import org.dromara.hutool.core.tree.hierarchy.HierarchyUtil;
 import org.dromara.hutool.core.util.CharsetUtil;
 
 import java.io.IOException;
@@ -43,7 +42,7 @@ import java.util.function.Predicate;
 /**
  * 类工具类 <br>
  *
- * @author xiaoleilu
+ * @author Looly
  */
 public class ClassUtil {
 
@@ -116,7 +115,7 @@ public class ClassUtil {
 	 * 例如：ClassUtil这个类<br>
 	 *
 	 * <pre>
-	 * isSimple为false: "com.xiaoleilu.hutool.util.ClassUtil"
+	 * isSimple为false: "org.dromara.hutool.core.reflect.ClassUtil"
 	 * isSimple为true: "ClassUtil"
 	 * </pre>
 	 *
@@ -551,7 +550,7 @@ public class ClassUtil {
 	/**
 	 * 获得给定类所在包的名称<br>
 	 * 例如：<br>
-	 * com.xiaoleilu.hutool.util.ClassUtil =》 com.xiaoleilu.hutool.util
+	 * org.dromara.hutool.core.reflect.ClassUtil =》 org.dromara.hutool.core.reflect
 	 *
 	 * @param clazz 类
 	 * @return 包名
@@ -571,7 +570,7 @@ public class ClassUtil {
 	/**
 	 * 获得给定类所在包的路径<br>
 	 * 例如：<br>
-	 * com.xiaoleilu.hutool.util.ClassUtil =》 com/xiaoleilu/hutool/util
+	 * org.dromara.hutool.core.reflect.ClassUtil =》 org/dromara/hutool/core/reflect
 	 *
 	 * @param clazz 类
 	 * @return 包名
@@ -826,10 +825,9 @@ public class ClassUtil {
 	 */
 	public static void traverseTypeHierarchyWhile(
 		final Class<?> root, final Predicate<Class<?>> filter, final Predicate<Class<?>> terminator) {
-		HierarchyUtil.traverseByBreadthFirst(
-			root, filter,
-			HierarchyIteratorUtil.scan(ClassUtil::getNextTypeHierarchies, terminator.negate())
-		);
+		EasyStream.iterateHierarchies(root, ClassUtil::getNextTypeHierarchies, filter)
+			.takeWhile(terminator)
+			.exec();
 	}
 
 	/**
@@ -857,7 +855,7 @@ public class ClassUtil {
 			}
 			return getNextTypeHierarchies(t);
 		};
-		HierarchyUtil.traverseByBreadthFirst(root, filter, HierarchyIteratorUtil.scan(function));
+		EasyStream.iterateHierarchies(root, function, filter).exec();
 	}
 
 	private static Set<Class<?>> getNextTypeHierarchies(final Class<?> t) {

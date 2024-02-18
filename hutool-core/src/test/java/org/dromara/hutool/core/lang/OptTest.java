@@ -12,17 +12,24 @@
 
 package org.dromara.hutool.core.lang;
 
-import org.dromara.hutool.core.collection.CollUtil;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.dromara.hutool.core.collection.CollUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.management.monitor.MonitorSettingException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -168,7 +175,7 @@ public class OptTest {
 		final List<String> hutool = Opt.ofEmptyAble(Collections.<String>emptyList()).orElseGet(() -> Collections.singletonList("hutool"));
 		Assertions.assertEquals(past, hutool);
 		Assertions.assertEquals(Collections.singletonList("hutool"), hutool);
-		Assertions.assertTrue(Opt.ofEmptyAble(Arrays.asList(null, null, null)).isEmpty());
+		Assertions.assertFalse(Opt.ofEmptyAble(Arrays.asList(null, null, null)).isEmpty());
 	}
 
 	@SuppressWarnings({"MismatchedQueryAndUpdateOfCollection", "ConstantConditions"})
@@ -190,9 +197,9 @@ public class OptTest {
 			return list.get(0);
 		}).exceptionOrElse("hutool");
 
-		Assertions.assertTrue(Opt.ofTry(() -> {
+		Assertions.assertInstanceOf(AssertionError.class, Opt.ofTry(() -> {
 			throw new AssertionError("");
-		}).getThrowable() instanceof AssertionError);
+		}).getThrowable());
 		Assertions.assertEquals(npe, npeSituation);
 		Assertions.assertEquals(indexOut, indexOutSituation);
 		Assertions.assertEquals("hutool", npe);
@@ -234,4 +241,25 @@ public class OptTest {
 			.ifFail(Console::log, NullPointerException.class, MonitorSettingException.class)
 		;
 	}
+
+
+	@SuppressWarnings({"NumericOverflow", "divzero"})
+	@Test
+	@Disabled
+	void testFail1() {
+		final Integer i = Opt.ofTry(() -> 1 / 0)
+			.map(e -> 666)
+			.ifFail(Console::log)
+			.orElseGet(() -> 1);
+		Assertions.assertEquals(i, 1);
+	}
+
+	@SuppressWarnings({"NumericOverflow", "divzero"})
+	@Test
+	@Disabled
+	void testToEasyStream() {
+		final List<Integer> list = Opt.ofTry(() -> 1).toEasyStream().toList();
+		Assertions.assertArrayEquals(list.toArray(), new Integer[]{1});
+	}
+
 }

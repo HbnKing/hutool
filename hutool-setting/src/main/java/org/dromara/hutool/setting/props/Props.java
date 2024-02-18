@@ -13,20 +13,19 @@
 package org.dromara.hutool.setting.props;
 
 import org.dromara.hutool.core.bean.BeanUtil;
-import org.dromara.hutool.core.io.file.FileUtil;
-import org.dromara.hutool.core.io.IORuntimeException;
-import org.dromara.hutool.core.io.IoUtil;
-import org.dromara.hutool.core.io.resource.Resource;
-import org.dromara.hutool.core.io.resource.ResourceUtil;
-import org.dromara.hutool.core.io.resource.UrlResource;
-import org.dromara.hutool.core.io.watch.SimpleWatcher;
-import org.dromara.hutool.core.io.watch.WatchMonitor;
-import org.dromara.hutool.core.io.watch.WatchUtil;
-import org.dromara.hutool.core.lang.Assert;
 import org.dromara.hutool.core.func.LambdaInfo;
 import org.dromara.hutool.core.func.LambdaUtil;
 import org.dromara.hutool.core.func.SerFunction;
 import org.dromara.hutool.core.func.SerSupplier;
+import org.dromara.hutool.core.io.IORuntimeException;
+import org.dromara.hutool.core.io.IoUtil;
+import org.dromara.hutool.core.io.file.FileUtil;
+import org.dromara.hutool.core.io.resource.Resource;
+import org.dromara.hutool.core.io.resource.ResourceUtil;
+import org.dromara.hutool.core.io.watch.WatchMonitor;
+import org.dromara.hutool.core.io.watch.WatchUtil;
+import org.dromara.hutool.core.io.watch.watchers.SimpleWatcher;
+import org.dromara.hutool.core.lang.Assert;
 import org.dromara.hutool.core.lang.getter.TypeGetter;
 import org.dromara.hutool.core.map.MapUtil;
 import org.dromara.hutool.core.reflect.ConstructorUtil;
@@ -40,8 +39,8 @@ import java.io.IOException;
 import java.io.Writer;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -100,6 +99,16 @@ public final class Props extends Properties implements TypeGetter<CharSequence> 
 	 */
 	public static Props of(final String resource, final Charset charset) {
 		return new Props(resource, charset);
+	}
+
+	/**
+	 * {@link Properties}转为Props
+	 *
+	 * @param properties {@link Properties}
+	 * @return Props
+	 */
+	public static Props of(final Properties properties) {
+		return new Props(properties);
 	}
 
 	// ----------------------------------------------------------------------- 构造方法 start
@@ -219,13 +228,13 @@ public final class Props extends Properties implements TypeGetter<CharSequence> 
 	public void autoLoad(final boolean autoReload) {
 		if (autoReload) {
 			Assert.notNull(this.resource, "Properties resource must be not null!");
-			if (null != this.watchMonitor) {
-				// 先关闭之前的监听
-				this.watchMonitor.close();
-			}
-			this.watchMonitor = WatchUtil.createModify(this.resource.getUrl(), new SimpleWatcher() {
+			// 先关闭之前的监听
+			IoUtil.closeQuietly(this.watchMonitor);
+			this.watchMonitor = WatchUtil.ofModify(this.resource.getUrl(), new SimpleWatcher() {
+				private static final long serialVersionUID = 1L;
+
 				@Override
-				public void onModify(final WatchEvent<?> event, final Path currentPath) {
+				public void onModify(final WatchEvent<?> event, final WatchKey key) {
 					load();
 				}
 			});
@@ -270,6 +279,37 @@ public final class Props extends Properties implements TypeGetter<CharSequence> 
 			}
 		}
 		return (String) value;
+	}
+
+	/**
+	 * 获取一个新的子属性，子属性键值对拥有公共前缀，以.分隔。
+	 * <pre>
+	 *     a.b
+	 *     a.c
+	 *     b.a
+	 * </pre>
+	 * 则调用getSubProps("a");得到
+	 * <pre>
+	 *     a.b
+	 *     a.c
+	 * </pre>
+	 *
+	 * @param prefix 前缀，可以不以.结尾
+	 * @return 子属性
+	 */
+	public Props getSubProps(final String prefix) {
+		final Props subProps = new Props();
+		final String finalPrefix = StrUtil.addSuffixIfNot(prefix, StrUtil.DOT);
+		final int prefixLength = finalPrefix.length();
+
+		forEach((key, value) -> {
+			final String keyStr = key.toString();
+			if (StrUtil.startWith(keyStr, finalPrefix)) {
+				subProps.set(StrUtil.subSuf(keyStr, prefixLength), value);
+			}
+		});
+
+		return subProps;
 	}
 
 	/**
@@ -325,7 +365,28 @@ public final class Props extends Properties implements TypeGetter<CharSequence> 
 	 */
 	public <T> T toBean(final Class<T> beanClass, final String prefix) {
 		final T bean = ConstructorUtil.newInstanceIfPossible(beanClass);
-		return fillBean(bean, prefix);
+		return toBean(bean, prefix);
+	}
+
+	/**
+	 * 将配置文件转换为Bean，支持嵌套Bean<br>
+	 * 支持的表达式：
+	 *
+	 * <pre>
+	 * persion
+	 * persion.name
+	 * persons[3]
+	 * person.friends[5].name
+	 * ['person']['friends'][5]['name']
+	 * </pre>
+	 *
+	 * @param <T>    Bean类型
+	 * @param bean   Bean对象
+	 * @return Bean对象
+	 * @since 4.6.3
+	 */
+	public <T> T toBean(final T bean) {
+		return toBean(bean, null);
 	}
 
 	/**
@@ -346,7 +407,7 @@ public final class Props extends Properties implements TypeGetter<CharSequence> 
 	 * @return Bean对象
 	 * @since 4.6.3
 	 */
-	public <T> T fillBean(final T bean, String prefix) {
+	public <T> T toBean(final T bean, String prefix) {
 		prefix = StrUtil.emptyIfNull(StrUtil.addSuffixIfNot(prefix, StrUtil.DOT));
 
 		String key;

@@ -14,8 +14,8 @@ package org.dromara.hutool.core.data.id;
 
 import org.dromara.hutool.core.date.SystemClock;
 import org.dromara.hutool.core.lang.Assert;
+import org.dromara.hutool.core.lang.generator.Generator;
 import org.dromara.hutool.core.lang.tuple.Pair;
-import org.dromara.hutool.core.text.StrUtil;
 import org.dromara.hutool.core.util.RandomUtil;
 
 import java.io.Serializable;
@@ -30,7 +30,7 @@ import java.util.Date;
  *
  * <pre>
  * 符号位（1bit）- 时间戳相对值（41bit）- 数据中心标志（5bit）- 机器标志（5bit）- 递增序号（12bit）
- * 0 - 0000000000 0000000000 0000000000 0000000000 0 - 00000 - 00000 - 000000000000
+ * (0) - (0000000000 0000000000 0000000000 0000000000 0) - (00000) - (00000) - (000000000000)
  * </pre>
  * <p>
  * 第一位为未使用(符号位表示正数)，接下来的41位为毫秒级时间(41位的长度可以使用69年)<br>
@@ -45,28 +45,20 @@ import java.util.Date;
  * @author Looly
  * @since 3.0.1
  */
-public class Snowflake implements Serializable {
+public class Snowflake implements Generator<Long>, Serializable {
 	private static final long serialVersionUID = 1L;
-
 
 	/**
 	 * 默认的起始时间，为Thu, 04 Nov 2010 01:42:54 GMT
 	 */
-	public static long DEFAULT_TWEPOCH = 1288834974657L;
-	/**
-	 * 默认回拨时间，2S
-	 */
-	public static long DEFAULT_TIME_OFFSET = 2000L;
-
+	public static final long DEFAULT_TWEPOCH = 1288834974657L;
 	private static final long WORKER_ID_BITS = 5L;
 	// 最大支持机器节点数0~31，一共32个
-	@SuppressWarnings({"PointlessBitwiseExpression", "FieldCanBeLocal"})
-	private static final long MAX_WORKER_ID = -1L ^ (-1L << WORKER_ID_BITS);
+	private static final long MAX_WORKER_ID = ~(-1L << WORKER_ID_BITS);
 	private static final long DATA_CENTER_ID_BITS = 5L;
 	// 最大支持数据中心节点数0~31，一共32个
-	@SuppressWarnings({"PointlessBitwiseExpression", "FieldCanBeLocal"})
-	private static final long MAX_DATA_CENTER_ID = -1L ^ (-1L << DATA_CENTER_ID_BITS);
-	// 序列号12位（表示只允许workId的范围为：0-4095）
+	private static final long MAX_DATA_CENTER_ID = ~(-1L << DATA_CENTER_ID_BITS);
+	// 序列号12位（表示只允许序号的范围为：0-4095）
 	private static final long SEQUENCE_BITS = 12L;
 	// 机器节点左移12位
 	private static final long WORKER_ID_SHIFT = SEQUENCE_BITS;
@@ -84,10 +76,6 @@ public class Snowflake implements Serializable {
 	private final long workerId;
 	private final long dataCenterId;
 	private final boolean useSystemClock;
-	/**
-	 * 允许的时钟回拨毫秒数
-	 */
-	private final long timeOffset;
 	/**
 	 * 当在低频模式下时，序号始终为0，导致生成ID始终为偶数<br>
 	 * 此属性用于限定一个随机上限，在不同毫秒下生成序号时，给定一个随机数，避免偶数问题。<br>
@@ -146,20 +134,9 @@ public class Snowflake implements Serializable {
 	 * @param isUseSystemClock 是否使用{@link SystemClock} 获取当前时间戳
 	 * @since 5.1.3
 	 */
-	public Snowflake(final Date epochDate, final long workerId, final long dataCenterId, final boolean isUseSystemClock) {
-		this(epochDate, workerId, dataCenterId, isUseSystemClock, DEFAULT_TIME_OFFSET);
-	}
-
-	/**
-	 * @param epochDate        初始化时间起点（null表示默认起始日期）,后期修改会导致id重复,如果要修改连workerId dataCenterId，慎用
-	 * @param workerId         工作机器节点id
-	 * @param dataCenterId     数据中心id
-	 * @param isUseSystemClock 是否使用{@link SystemClock} 获取当前时间戳
-	 * @param timeOffset       允许时间回拨的毫秒数
-	 * @since 5.8.0
-	 */
-	public Snowflake(final Date epochDate, final long workerId, final long dataCenterId, final boolean isUseSystemClock, final long timeOffset) {
-		this(epochDate, workerId, dataCenterId, isUseSystemClock, timeOffset, 0);
+	public Snowflake(final Date epochDate, final long workerId, final long dataCenterId,
+					 final boolean isUseSystemClock) {
+		this(epochDate, workerId, dataCenterId, isUseSystemClock, 0);
 	}
 
 	/**
@@ -167,17 +144,15 @@ public class Snowflake implements Serializable {
 	 * @param workerId            工作机器节点id
 	 * @param dataCenterId        数据中心id
 	 * @param isUseSystemClock    是否使用{@link SystemClock} 获取当前时间戳
-	 * @param timeOffset          允许时间回拨的毫秒数
 	 * @param randomSequenceLimit 限定一个随机上限，在不同毫秒下生成序号时，给定一个随机数，避免偶数问题，0表示无随机，上限不包括值本身。
 	 * @since 5.8.0
 	 */
 	public Snowflake(final Date epochDate, final long workerId, final long dataCenterId,
-					 final boolean isUseSystemClock, final long timeOffset, final long randomSequenceLimit) {
+					 final boolean isUseSystemClock, final long randomSequenceLimit) {
 		this.twepoch = (null != epochDate) ? epochDate.getTime() : DEFAULT_TWEPOCH;
 		this.workerId = Assert.checkBetween(workerId, 0, MAX_WORKER_ID);
 		this.dataCenterId = Assert.checkBetween(dataCenterId, 0, MAX_DATA_CENTER_ID);
 		this.useSystemClock = isUseSystemClock;
-		this.timeOffset = timeOffset;
 		this.randomSequenceLimit = Assert.checkBetween(randomSequenceLimit, 0, SEQUENCE_MASK);
 	}
 
@@ -216,31 +191,25 @@ public class Snowflake implements Serializable {
 	 *
 	 * @return ID
 	 */
-	public synchronized long nextId() {
+	@Override
+	public synchronized Long next() {
 		long timestamp = genTime();
 		if (timestamp < this.lastTimestamp) {
-			if (this.lastTimestamp - timestamp < timeOffset) {
-				// 容忍指定的回拨，避免NTP校时造成的异常
-				timestamp = lastTimestamp;
-			} else {
-				// 如果服务器时间有问题(时钟后退) 报错。
-				throw new IllegalStateException(StrUtil.format("Clock moved backwards. Refusing to generate id for {}ms", lastTimestamp - timestamp));
-			}
+			timestamp = lastTimestamp;
 		}
 
 		if (timestamp == this.lastTimestamp) {
+			// 时间出现回拨，递增序号
 			final long sequence = (this.sequence + 1) & SEQUENCE_MASK;
 			if (sequence == 0) {
-				timestamp = tilNextMillis(lastTimestamp);
+				// 如果序号耗尽，不再等待时间追赶，而是采用“超前消费”方式，让时间递增。
+				// 这样可以避免系统暂停等待，而选择在“未来”ID新增不快时追上来。
+				timestamp += 1;
 			}
 			this.sequence = sequence;
 		} else {
-			// issue#I51EJY
-			if (randomSequenceLimit > 1) {
-				sequence = RandomUtil.randomLong(randomSequenceLimit);
-			} else {
-				sequence = 0L;
-			}
+			// issue#I51EJY，通过随机数避免低频生成ID序号始终为0的问题
+			sequence = randomSequenceLimit > 1 ? RandomUtil.randomLong(randomSequenceLimit) : 0L;
 		}
 
 		lastTimestamp = timestamp;
@@ -256,8 +225,8 @@ public class Snowflake implements Serializable {
 	 *
 	 * @return ID 字符串形式
 	 */
-	public String nextIdStr() {
-		return Long.toString(nextId());
+	public String nextStr() {
+		return Long.toString(next());
 	}
 
 	/**
@@ -295,27 +264,6 @@ public class Snowflake implements Serializable {
 	}
 
 	// ------------------------------------------------------------------------------------------------------------------------------------ Private method start
-
-	/**
-	 * 循环等待下一个时间
-	 *
-	 * @param lastTimestamp 上次记录的时间
-	 * @return 下一个时间
-	 */
-	private long tilNextMillis(final long lastTimestamp) {
-		long timestamp = genTime();
-		// 循环直到操作系统时间戳变化
-		while (timestamp == lastTimestamp) {
-			timestamp = genTime();
-		}
-		if (timestamp < lastTimestamp) {
-			// 如果发现新的时间戳比上次记录的时间戳数值小，说明操作系统时间发生了倒退，报错
-			throw new IllegalStateException(
-					StrUtil.format("Clock moved backwards. Refusing to generate id for {}ms", lastTimestamp - timestamp));
-		}
-		return timestamp;
-	}
-
 	/**
 	 * 生成时间戳
 	 *

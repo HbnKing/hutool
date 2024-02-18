@@ -477,23 +477,20 @@ public class Img implements Serializable {
 	 * @return 处理后的图像
 	 */
 	public Img pressText(final String pressText, final Color color, final Font font, final int x, final int y, final float alpha) {
-		return pressText(pressText, color, font, new Point(x, y), alpha);
+		return pressText(DisplayText.of(pressText, color, font, new Point(x, y), alpha));
 	}
 
 	/**
 	 * 给图片添加文字水印<br>
 	 * 此方法只在给定位置写出一个水印字符串
 	 *
-	 * @param pressText 水印文字
-	 * @param color     水印的字体颜色
-	 * @param font      {@link Font} 字体相关信息
-	 * @param point     绘制字符串的位置坐标
-	 * @param alpha     透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
+	 * @param displayText 显示的文本信息
 	 * @return 处理后的图像
 	 */
-	public Img pressText(final String pressText, final Color color, Font font, final Point point, final float alpha) {
+	public Img pressText(final DisplayText displayText) {
 		final BufferedImage targetImage = ImgUtil.toBufferedImage(getValidSrcImg(), this.targetImageType);
 
+		Font font = displayText.getFont();
 		if (null == font) {
 			// 默认字体
 			font = FontUtil.createSansSerifFont((int) (targetImage.getHeight() * 0.75));
@@ -501,16 +498,17 @@ public class Img implements Serializable {
 
 		final Graphics2D g = targetImage.createGraphics();
 		// 透明度
-		g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, alpha));
+		g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, displayText.getAlpha()));
 
+		final Point point = displayText.getPoint();
 		// 绘制
 		if (positionBaseCentre) {
 			// 基于中心绘制
-			GraphicsUtil.drawString(g, pressText, font, color,
+			GraphicsUtil.drawString(g, displayText.getPressText(), font, displayText.getColor(),
 					new Rectangle(point.x, point.y, targetImage.getWidth(), targetImage.getHeight()));
 		} else {
 			// 基于左上角绘制
-			GraphicsUtil.drawString(g, pressText, font, color, point);
+			GraphicsUtil.drawString(g, displayText.getPressText(), font, displayText.getColor(), point);
 		}
 
 		// 收笔
@@ -605,6 +603,50 @@ public class Img implements Serializable {
 		this.targetImage = draw(ImgUtil.toBufferedImage(targetImg, this.targetImageType), pressImg, rectangle, alpha);
 		return this;
 	}
+
+
+	/**
+	 * 给图片添加全屏图片水印
+	 *
+	 * @param pressImage 水印图片
+	 * @param lineHeight 行高
+	 * @param degree     旋转角度，（单位：弧度），以圆点（0,0）为圆心，正代表顺时针，负代表逆时针
+	 * @param alpha      透明度：alpha 必须是范围 [0.0, 1.0] 之内（包含边界值）的一个浮点数字
+	 * @author imashimaro
+	 * @return this
+	 */
+	public Img pressImageFull(final Image pressImage, final int lineHeight, final int degree, final float alpha) {
+		final BufferedImage targetImage = ImgUtil.toBufferedImage(getValidSrcImg(), this.targetImageType);
+
+		final int targetHeight = targetImage.getHeight();
+		final int targetWidth = targetImage.getWidth();
+
+		// 创建画笔，并设置透明度和角度
+		final Graphics2D g = targetImage.createGraphics();
+		// 基于图片中心旋转
+		g.rotate(Math.toRadians(degree), targetWidth >> 1, targetHeight >> 1);
+		g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, alpha));
+
+		//获取水印图片本身的长宽
+		final int pressImageWidth = pressImage.getWidth(null);
+		final int pressImageHeight = pressImage.getHeight(null);
+		final Dimension dimension = new Dimension(pressImageWidth, pressImageHeight);
+		final int intervalHeight = dimension.height * lineHeight;
+		// 在画笔按照画布中心旋转后，达到45度时，上下左右会出现空白区，此处各延伸长款的1.5倍实现全覆盖
+		int y = -targetHeight >> 1 ;
+		while (y < targetHeight * 1.5) {
+			int x = -targetWidth >> 1;
+			while (x < targetWidth * 1.5) {
+				GraphicsUtil.drawImg(g, pressImage, new Point(x, y));
+				x += dimension.width;
+			}
+			y += intervalHeight;
+		}
+		g.dispose();
+		this.targetImage = targetImage;
+		return this;
+	}
+
 
 	/**
 	 * 旋转图片为指定角度<br>

@@ -35,7 +35,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * 随机工具类
  *
- * @author xiaoleilu
+ * @author Looly
  */
 public class RandomUtil {
 
@@ -249,7 +249,7 @@ public class RandomUtil {
 			min++;
 		}
 		if (includeMax) {
-			max--;
+			max++;
 		}
 		return getRandom().nextInt(min, max);
 	}
@@ -322,7 +322,7 @@ public class RandomUtil {
 			min++;
 		}
 		if (includeMax) {
-			max--;
+			max++;
 		}
 		return getRandom().nextLong(min, max);
 	}

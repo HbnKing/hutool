@@ -12,8 +12,8 @@
 
 package org.dromara.hutool.db.ds.simple;
 
-import org.dromara.hutool.db.ds.AbstractDSFactory;
-import org.dromara.hutool.setting.Setting;
+import org.dromara.hutool.db.config.ConnectionConfig;
+import org.dromara.hutool.db.ds.DSFactory;
 
 import javax.sql.DataSource;
 
@@ -23,39 +23,16 @@ import javax.sql.DataSource;
  * @author Looly
  *
  */
-public class SimpleDSFactory extends AbstractDSFactory {
+public class SimpleDSFactory implements DSFactory {
 	private static final long serialVersionUID = 4738029988261034743L;
 
-	/**
-	 * 数据源名称：Hutool-Simple-DataSource
-	 */
-	public static final String DS_NAME = "Hutool-Simple-DataSource";
-
-	/**
-	 * 构造，使用默认配置文件
-	 */
-	public SimpleDSFactory() {
-		this(null);
-	}
-
-	/**
-	 * 构造，使用自定义配置文件
-	 *
-	 * @param setting 配置
-	 */
-	public SimpleDSFactory(final Setting setting) {
-		super(DS_NAME, SimpleDataSource.class, setting);
+	@Override
+	public String getDataSourceName() {
+		return "Hutool-Simple-DataSource";
 	}
 
 	@Override
-	protected DataSource createDataSource(final String jdbcUrl, final String driver, final String user, final String pass, final Setting poolSetting) {
-		final SimpleDataSource ds = new SimpleDataSource(//
-				jdbcUrl, //
-				user, //
-				pass, //
-				driver//
-		);
-		ds.setConnProps(poolSetting.getProps(Setting.DEFAULT_GROUP));
-		return ds;
+	public DataSource createDataSource(final ConnectionConfig<?> config) {
+		return new SimpleDataSource(config);
 	}
 }

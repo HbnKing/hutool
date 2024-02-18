@@ -17,10 +17,29 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 public class PathUtilTest {
+
+	@SuppressWarnings("DuplicateExpressions")
+	@Test
+	void ofTest() {
+		// 绝对路径测试
+		Path path = PathUtil.of(Paths.get("d:/test/hutool"), Paths.get("data1"), Paths.get("data2"));
+		Assertions.assertEquals("d:/test/hutool/data1/data2", path.toString().replace('\\', '/'));
+
+		// 相对路径测试
+		path = PathUtil.of(Paths.get("hutool"), Paths.get("data1"), Paths.get("data2"));
+		Assertions.assertEquals("hutool/data1/data2", path.toString().replace('\\', '/'));
+
+		path = PathUtil.of(Paths.get("hutool"));
+		Assertions.assertEquals("hutool", path.toString().replace('\\', '/'));
+
+		path = PathUtil.of((Path) null);
+		Assertions.assertNull(path);
+	}
 
 	@Test
 	@Disabled

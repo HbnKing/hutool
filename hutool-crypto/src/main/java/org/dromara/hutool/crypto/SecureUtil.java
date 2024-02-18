@@ -12,21 +12,23 @@
 
 package org.dromara.hutool.crypto;
 
+import org.bouncycastle.crypto.AlphabetMapper;
+import org.dromara.hutool.core.array.ArrayUtil;
 import org.dromara.hutool.core.codec.binary.Base64;
-import org.dromara.hutool.core.codec.HexUtil;
+import org.dromara.hutool.core.codec.binary.Hex;
 import org.dromara.hutool.core.lang.Validator;
 import org.dromara.hutool.core.text.StrUtil;
 import org.dromara.hutool.core.util.ByteUtil;
+import org.dromara.hutool.core.util.SystemUtil;
 import org.dromara.hutool.crypto.asymmetric.AsymmetricAlgorithm;
 import org.dromara.hutool.crypto.asymmetric.RSA;
 import org.dromara.hutool.crypto.digest.DigestAlgorithm;
 import org.dromara.hutool.crypto.digest.Digester;
+import org.dromara.hutool.crypto.digest.MD5;
 import org.dromara.hutool.crypto.digest.mac.HMac;
 import org.dromara.hutool.crypto.digest.mac.HmacAlgorithm;
-import org.dromara.hutool.crypto.digest.MD5;
 import org.dromara.hutool.crypto.provider.GlobalProviderFactory;
 import org.dromara.hutool.crypto.symmetric.*;
-import org.bouncycastle.crypto.AlphabetMapper;
 
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
@@ -37,6 +39,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
+import java.util.Objects;
 
 /**
  * 安全相关工具类<br>
@@ -48,6 +51,9 @@ import java.security.Security;
  * @author Looly, Gsealy
  */
 public class SecureUtil {
+
+	/** Hutool自定义系统属性：是否解码Hex字符 issue#I90M9D */
+	public static String HUTOOL_CRYPTO_DECODE_HEX = "hutool.crypto.decodeHex";
 
 	/**
 	 * 生成算法，格式为XXXwithXXX
@@ -503,6 +509,10 @@ public class SecureUtil {
 	 * @since 4.1.22
 	 */
 	public static void addProvider(final Provider provider) {
+		if(ArrayUtil.contains(Security.getProviders(), provider)){
+			// 如果已经注册过Provider，不再重新注册
+			return;
+		}
 		Security.insertProviderAt(provider, 0);
 	}
 
@@ -519,7 +529,14 @@ public class SecureUtil {
 	 * @since 4.3.3
 	 */
 	public static byte[] decode(final String key) {
-		return Validator.isHex(key) ? HexUtil.decodeHex(key) : Base64.decode(key);
+		if(Objects.isNull(key)){
+			return null;
+		}
+
+		// issue#I90M9D
+		// 某些特殊字符串会无法区分Hex还是Base64，此处使用系统属性强制关闭Hex解析
+		final boolean decodeHex = SystemUtil.getBoolean(HUTOOL_CRYPTO_DECODE_HEX, true);
+		return (decodeHex && Validator.isHex(key)) ? Hex.decode(key) : Base64.decode(key);
 	}
 
 	/**
@@ -612,11 +629,9 @@ public class SecureUtil {
 	}
 
 	/**
-	 * 强制关闭Bouncy Castle库的使用，全局有效
-	 *
-	 * @since 4.5.2
+	 * 强制关闭自定义{@link Provider}的使用，如Bouncy Castle库，全局有效
 	 */
-	public static void disableBouncyCastle() {
+	public static void disableCustomProvider() {
 		GlobalProviderFactory.setUseCustomProvider(false);
 	}
 

@@ -12,6 +12,7 @@
 
 package org.dromara.hutool.extra.pinyin.engine.tinypinyin;
 
+import org.dromara.hutool.core.text.StrUtil;
 import org.dromara.hutool.extra.pinyin.engine.PinyinEngine;
 import com.github.promeg.pinyinhelper.Pinyin;
 
@@ -41,21 +42,22 @@ public class TinyPinyinEngine implements PinyinEngine {
 	/**
 	 * 构造
 	 */
-	public TinyPinyinEngine(){
+	public TinyPinyinEngine() {
 		this(null);
 	}
 
 	/**
 	 * 构造
+	 *
 	 * @param config 配置
 	 */
-	public TinyPinyinEngine(final Pinyin.Config config){
+	public TinyPinyinEngine(final Pinyin.Config config) {
 		Pinyin.init(config);
 	}
 
 	@Override
 	public String getPinyin(final char c) {
-		if(!Pinyin.isChinese(c)){
+		if (!Pinyin.isChinese(c)) {
 			return String.valueOf(c);
 		}
 		return Pinyin.toPinyin(c).toLowerCase();
@@ -63,7 +65,8 @@ public class TinyPinyinEngine implements PinyinEngine {
 
 	@Override
 	public String getPinyin(final String str, final String separator) {
-		return Pinyin.toPinyin(str, separator).toLowerCase();
+		final String pinyin = Pinyin.toPinyin(str, separator);
+		return StrUtil.isEmpty(pinyin) ? pinyin : pinyin.toLowerCase();
 	}
 
 }

@@ -16,7 +16,6 @@ import org.dromara.hutool.core.date.DateException;
 import org.dromara.hutool.core.date.DatePattern;
 import org.dromara.hutool.core.date.DateTime;
 import org.dromara.hutool.core.date.format.DefaultDateBasic;
-import org.dromara.hutool.core.lang.Console;
 import org.dromara.hutool.core.regex.ReUtil;
 import org.dromara.hutool.core.text.StrUtil;
 import org.dromara.hutool.core.text.CharUtil;
@@ -35,7 +34,7 @@ import org.dromara.hutool.core.text.CharUtil;
  * @author looly
  * @since 6.0.0
  */
-public class ISO8601DateParser extends DefaultDateBasic implements DateParser {
+public class ISO8601DateParser extends DefaultDateBasic implements PredicateDateParser {
 	private static final long serialVersionUID = 1L;
 
 	/**
@@ -44,7 +43,12 @@ public class ISO8601DateParser extends DefaultDateBasic implements DateParser {
 	public static ISO8601DateParser INSTANCE = new ISO8601DateParser();
 
 	@Override
-	public DateTime parse(String source) {
+	public boolean test(final CharSequence dateStr) {
+		return StrUtil.contains(dateStr, 'T');
+	}
+
+	@Override
+	public DateTime parse(String source) throws DateException{
 		final int length = source.length();
 		if (StrUtil.contains(source, 'Z')) {
 			if (length == DatePattern.UTC_PATTERN.length() - 4) {

@@ -358,19 +358,6 @@ public class NumberUtil extends NumberValidator {
 	 * 采用四舍五入策略 {@link RoundingMode#HALF_UP}<br>
 	 * 例如保留2位小数：123.456789 =》 123.46
 	 *
-	 * @param numberStr 数字值的字符串表现形式
-	 * @param scale     保留小数位数
-	 * @return 新值
-	 */
-	public static BigDecimal round(final String numberStr, final int scale) {
-		return round(numberStr, scale, RoundingMode.HALF_UP);
-	}
-
-	/**
-	 * 保留固定位数小数<br>
-	 * 采用四舍五入策略 {@link RoundingMode#HALF_UP}<br>
-	 * 例如保留2位小数：123.456789 =》 123.46
-	 *
 	 * @param number 数字值
 	 * @param scale  保留小数位数
 	 * @return 新值
@@ -391,7 +378,7 @@ public class NumberUtil extends NumberValidator {
 	 * @since 3.2.2
 	 */
 	public static String roundStr(final String numberStr, final int scale) {
-		return round(numberStr, scale).toPlainString();
+		return roundStr(numberStr, scale, RoundingMode.HALF_UP);
 	}
 
 	/**
@@ -404,7 +391,7 @@ public class NumberUtil extends NumberValidator {
 	 * @return 新值
 	 */
 	public static BigDecimal round(final double v, final int scale, final RoundingMode roundingMode) {
-		return round(Double.toString(v), scale, roundingMode);
+		return round(toBigDecimal(v), scale, roundingMode);
 	}
 
 	/**
@@ -419,23 +406,6 @@ public class NumberUtil extends NumberValidator {
 	 */
 	public static String roundStr(final double v, final int scale, final RoundingMode roundingMode) {
 		return round(v, scale, roundingMode).toPlainString();
-	}
-
-	/**
-	 * 保留固定位数小数<br>
-	 * 例如保留四位小数：123.456789 =》 123.4567
-	 *
-	 * @param numberStr    数字值的字符串表现形式
-	 * @param scale        保留小数位数，如果传入小于0，则默认0
-	 * @param roundingMode 保留小数的模式 {@link RoundingMode}，如果传入null则默认四舍五入
-	 * @return 新值
-	 */
-	public static BigDecimal round(final String numberStr, int scale, final RoundingMode roundingMode) {
-		Assert.notBlank(numberStr);
-		if (scale < 0) {
-			scale = 0;
-		}
-		return round(toBigDecimal(numberStr), scale, roundingMode);
 	}
 
 	/**
@@ -472,7 +442,7 @@ public class NumberUtil extends NumberValidator {
 	 * @since 3.2.2
 	 */
 	public static String roundStr(final String numberStr, final int scale, final RoundingMode roundingMode) {
-		return round(numberStr, scale, roundingMode).toPlainString();
+		return round(toBigDecimal(numberStr), scale, roundingMode).toPlainString();
 	}
 
 	/**
@@ -928,21 +898,21 @@ public class NumberUtil extends NumberValidator {
 		}
 
 		// Float、Double等有精度问题，转换为字符串后再转换
-		return toBigDecimal(number.toString());
+		return new BigDecimal(number.toString());
 	}
 
 	/**
 	 * 数字转{@link BigDecimal}<br>
-	 * null或""或空白符转换为0
+	 * null或""或空白符抛出{@link IllegalArgumentException}异常<br>
+	 * "NaN"转为{@link BigDecimal#ZERO}
 	 *
 	 * @param numberStr 数字字符串
 	 * @return {@link BigDecimal}
-	 * @since 4.0.9
+	 * @throws IllegalArgumentException null或""或"NaN"或空白符抛出此异常
 	 */
-	public static BigDecimal toBigDecimal(final String numberStr) {
-		if (StrUtil.isBlank(numberStr)) {
-			return BigDecimal.ZERO;
-		}
+	public static BigDecimal toBigDecimal(final String numberStr) throws IllegalArgumentException{
+		// 统一规则，不再转换带有歧义的null、""和空格
+		Assert.notBlank(numberStr, "Number str must be not blank!");
 
 		// issue#3241，优先调用构造解析
 		try{
@@ -957,16 +927,15 @@ public class NumberUtil extends NumberValidator {
 
 	/**
 	 * 数字转{@link BigInteger}<br>
-	 * null转换为0
+	 * null或"NaN"转换为0
 	 *
 	 * @param number 数字
 	 * @return {@link BigInteger}
 	 * @since 5.4.5
 	 */
 	public static BigInteger toBigInteger(final Number number) {
-		if (null == number) {
-			return BigInteger.ZERO;
-		}
+		// 统一规则，不再转换带有歧义的null
+		Assert.notNull(number, "Number must be not null!");
 
 		if (number instanceof BigInteger) {
 			return (BigInteger) number;
@@ -981,12 +950,21 @@ public class NumberUtil extends NumberValidator {
 	 * 数字转{@link BigInteger}<br>
 	 * null或""或空白符转换为0
 	 *
-	 * @param number 数字字符串
+	 * @param numberStr 数字字符串
 	 * @return {@link BigInteger}
 	 * @since 5.4.5
 	 */
-	public static BigInteger toBigInteger(final String number) {
-		return StrUtil.isBlank(number) ? BigInteger.ZERO : new BigInteger(number);
+	public static BigInteger toBigInteger(final String numberStr) {
+		// 统一规则，不再转换带有歧义的null、""和空格
+		Assert.notBlank(numberStr, "Number str must be not blank!");
+
+		try{
+			return new BigInteger(numberStr);
+		} catch (final Exception ignore){
+			// 忽略解析错误
+		}
+
+		return parseBigInteger(numberStr);
 	}
 
 	/**
@@ -1021,10 +999,10 @@ public class NumberUtil extends NumberValidator {
 
 	// region nullToZero
 	/**
-	 * 如果给定值为0，返回1，否则返回原值
+	 * 如果给定值为{@code null}，返回0，否则返回原值
 	 *
 	 * @param number 值
-	 * @return 1或非0值
+	 * @return 0或非0值
 	 */
 	public static int nullToZero(final Integer number) {
 		return number == null ? 0 : number;
@@ -1034,64 +1012,64 @@ public class NumberUtil extends NumberValidator {
 	 * 如果给定值为0，返回1，否则返回原值
 	 *
 	 * @param number 值
-	 * @return 1或非0值
+	 * @return 0或非0值
 	 */
 	public static long nullToZero(final Long number) {
 		return number == null ? 0L : number;
 	}
 
 	/**
-	 * 如果给定值为0，返回1，否则返回原值
+	 * 如果给定值为{@code null}，返回0，否则返回原值
 	 *
 	 * @param number 值
-	 * @return 1或非0值
+	 * @return 0或非0值
 	 */
 	public static double nullToZero(final Double number) {
 		return number == null ? 0.0 : number;
 	}
 
 	/**
-	 * 如果给定值为0，返回1，否则返回原值
+	 * 如果给定值为{@code null}，返回0，否则返回原值
 	 *
 	 * @param number 值
-	 * @return 1或非0值
+	 * @return 0或非0值
 	 */
 	public static float nullToZero(final Float number) {
 		return number == null ? 0.0f : number;
 	}
 
 	/**
-	 * 如果给定值为0，返回1，否则返回原值
+	 * 如果给定值为{@code null}，返回0，否则返回原值
 	 *
 	 * @param number 值
-	 * @return 1或非0值
+	 * @return 0或非0值
 	 */
 	public static short nullToZero(final Short number) {
 		return number == null ? (short) 0 : number;
 	}
 
 	/**
-	 * 如果给定值为0，返回1，否则返回原值
+	 * 如果给定值为{@code null}，返回0，否则返回原值
 	 *
 	 * @param number 值
-	 * @return 1或非0值
+	 * @return 0或非0值
 	 */
 	public static byte nullToZero(final Byte number) {
 		return number == null ? (byte) 0 : number;
 	}
 
 	/**
-	 * 如果给定值为0，返回1，否则返回原值
+	 * 如果给定值为{@code null}，返回0，否则返回原值
 	 *
 	 * @param number 值
-	 * @return 1或非0值
+	 * @return 0或非0值
 	 */
 	public static BigInteger nullToZero(final BigInteger number) {
-		return number == null ? BigInteger.ZERO : number;
+		return ObjUtil.defaultIfNull(number, BigInteger.ZERO);
 	}
 
 	/**
-	 * 空转0
+	 * 如果给定值为{@code null}，返回0，否则返回原值
 	 *
 	 * @param decimal {@link BigDecimal}，可以为{@code null}
 	 * @return {@link BigDecimal}参数为空时返回0的值
@@ -1583,5 +1561,39 @@ public class NumberUtil extends NumberValidator {
 			return 0d == n.doubleValue();
 		}
 		return equals(toBigDecimal(n), BigDecimal.ZERO);
+	}
+
+	/**
+	 * 整数转罗马数字<br>
+	 * 限制：[1,3999]的正整数
+	 * <ul>
+	 *     <li>I 1</li>
+	 *     <li>V 5</li>
+	 *     <li>X 10</li>
+	 *     <li>L 50</li>
+	 *     <li>C 100</li>
+	 *     <li>D 500</li>
+	 *     <li>M 1000</li>
+	 * </ul>
+	 *
+	 * @param num [1,3999]的正整数
+	 * @return 罗马数字
+	 * @since 6.0.0
+	 * @author dazer
+	 */
+	public static String intToRoman(final int num) {
+		return NumberRomanFormatter.intToRoman(num);
+	}
+
+	/**
+	 * 罗马数字转整数<br>
+	 * @param roman 罗马字符
+	 * @return 整数
+	 * @throws IllegalArgumentException 如果传入非罗马字符串，抛出异常
+	 * @since 6.0.0
+	 * @author dazer
+	 */
+	public static int romanToInt(final String roman) {
+		return NumberRomanFormatter.romanToInt(roman);
 	}
 }

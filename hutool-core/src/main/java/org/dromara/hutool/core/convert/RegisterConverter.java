@@ -13,7 +13,6 @@
 package org.dromara.hutool.core.convert;
 
 import org.dromara.hutool.core.convert.impl.*;
-import org.dromara.hutool.core.date.DateTime;
 import org.dromara.hutool.core.lang.Opt;
 import org.dromara.hutool.core.lang.tuple.Pair;
 import org.dromara.hutool.core.lang.tuple.Triple;
@@ -54,15 +53,15 @@ public class RegisterConverter implements Converter, Serializable {
 		/**
 		 * 静态初始化器，由JVM来保证线程安全
 		 */
-		private static final CompositeConverter INSTANCE = new CompositeConverter();
+		private static final RegisterConverter INSTANCE = new RegisterConverter();
 	}
 
 	/**
-	 * 获得单例的 ConverterRegistry
+	 * 获得单例的 RegisterConverter
 	 *
-	 * @return ConverterRegistry
+	 * @return RegisterConverter
 	 */
-	public static CompositeConverter getInstance() {
+	public static RegisterConverter getInstance() {
 		return RegisterConverter.SingletonHolder.INSTANCE;
 	}
 

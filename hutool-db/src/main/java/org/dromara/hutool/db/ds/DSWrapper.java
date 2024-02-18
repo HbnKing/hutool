@@ -14,7 +14,8 @@ package org.dromara.hutool.db.ds;
 
 import org.dromara.hutool.core.exception.CloneException;
 import org.dromara.hutool.core.io.IoUtil;
-import org.dromara.hutool.core.func.Wrapper;
+import org.dromara.hutool.core.lang.wrapper.SimpleWrapper;
+import org.dromara.hutool.db.config.DbConfig;
 
 import javax.sql.DataSource;
 import java.io.Closeable;
@@ -34,31 +35,39 @@ import java.util.logging.Logger;
  * @author looly
  * @since 4.3.2
  */
-public class DSWrapper implements Wrapper<DataSource>, DataSource, Closeable, Cloneable {
+public class DSWrapper extends SimpleWrapper<DataSource> implements DataSource, Closeable, Cloneable {
 
-	private final DataSource ds;
-	private final String driver;
+	private final DbConfig dbConfig;
 
 	/**
 	 * 包装指定的DataSource
 	 *
 	 * @param ds     原始的DataSource
-	 * @param driver 数据库驱动类名
+	 * @param dbConfig 数据库驱动类名
 	 * @return DataSourceWrapper
 	 */
-	public static DSWrapper wrap(final DataSource ds, final String driver) {
-		return new DSWrapper(ds, driver);
+	public static DSWrapper wrap(final DataSource ds, final DbConfig dbConfig) {
+		return new DSWrapper(ds, dbConfig);
 	}
 
 	/**
 	 * 构造
 	 *
-	 * @param ds     原始的DataSource
-	 * @param driver 数据库驱动类名
+	 * @param ds       原始的DataSource
+	 * @param dbConfig 数据库配置
 	 */
-	public DSWrapper(final DataSource ds, final String driver) {
-		this.ds = ds;
-		this.driver = driver;
+	public DSWrapper(final DataSource ds, final DbConfig dbConfig) {
+		super(ds);
+		this.dbConfig = dbConfig;
+	}
+
+	/**
+	 * 获取数据库配置
+	 *
+	 * @return 数据库配置
+	 */
+	public DbConfig getDbConfig(){
+		return this.dbConfig;
 	}
 
 	/**
@@ -67,68 +76,59 @@ public class DSWrapper implements Wrapper<DataSource>, DataSource, Closeable, Cl
 	 * @return 驱动名
 	 */
 	public String getDriver() {
-		return this.driver;
-	}
-
-	/**
-	 * 获取原始的数据源
-	 *
-	 * @return 原始数据源
-	 */
-	@Override
-	public DataSource getRaw() {
-		return this.ds;
+		return this.dbConfig.getDriver();
 	}
 
 	@Override
 	public PrintWriter getLogWriter() throws SQLException {
-		return ds.getLogWriter();
+		return this.raw.getLogWriter();
 	}
 
 	@Override
 	public void setLogWriter(final PrintWriter out) throws SQLException {
-		ds.setLogWriter(out);
+		this.raw.setLogWriter(out);
 	}
 
 	@Override
 	public void setLoginTimeout(final int seconds) throws SQLException {
-		ds.setLoginTimeout(seconds);
+		this.raw.setLoginTimeout(seconds);
 	}
 
 	@Override
 	public int getLoginTimeout() throws SQLException {
-		return ds.getLoginTimeout();
+		return this.raw.getLoginTimeout();
 	}
 
 	@Override
 	public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-		return ds.getParentLogger();
+		return this.raw.getParentLogger();
 	}
 
 	@Override
 	public <T> T unwrap(final Class<T> iface) throws SQLException {
-		return ds.unwrap(iface);
+		return this.raw.unwrap(iface);
 	}
 
 	@Override
 	public boolean isWrapperFor(final Class<?> iface) throws SQLException {
-		return ds.isWrapperFor(iface);
+		return this.raw.isWrapperFor(iface);
 	}
 
 	@Override
 	public Connection getConnection() throws SQLException {
-		return ds.getConnection();
+		return this.raw.getConnection();
 	}
 
 	@Override
 	public Connection getConnection(final String username, final String password) throws SQLException {
-		return ds.getConnection(username, password);
+		return this.raw.getConnection(username, password);
 	}
 
 	@Override
 	public void close() {
-		if (this.ds instanceof AutoCloseable) {
-			IoUtil.closeQuietly((AutoCloseable) this.ds);
+		final DataSource ds = this.raw;
+		if (ds instanceof AutoCloseable) {
+			IoUtil.closeQuietly((AutoCloseable) ds);
 		}
 	}
 

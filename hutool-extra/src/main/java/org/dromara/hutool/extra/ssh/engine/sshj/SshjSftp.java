@@ -14,13 +14,14 @@ package org.dromara.hutool.extra.ssh.engine.sshj;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.channel.direct.Session;
+import net.schmizz.sshj.sftp.RemoteFile;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import org.dromara.hutool.core.collection.CollUtil;
+import org.dromara.hutool.core.io.IORuntimeException;
 import org.dromara.hutool.core.io.IoUtil;
 import org.dromara.hutool.core.text.StrUtil;
-import org.dromara.hutool.core.util.CharsetUtil;
 import org.dromara.hutool.extra.ftp.AbstractFtp;
 import org.dromara.hutool.extra.ftp.FtpConfig;
 import org.dromara.hutool.extra.ftp.FtpException;
@@ -45,27 +46,17 @@ import java.util.List;
  */
 public class SshjSftp extends AbstractFtp {
 
-	private SSHClient ssh;
-	private SFTPClient sftp;
-
-	/**
-	 * 构造，使用默认端口
-	 *
-	 * @param sshHost 主机
-	 */
-	public SshjSftp(final String sshHost) {
-		this(new FtpConfig(sshHost, 22, null, null, CharsetUtil.UTF_8));
-	}
-
+	// region ----- of
 	/**
 	 * 构造
 	 *
 	 * @param sshHost 主机
 	 * @param sshUser 用户名
 	 * @param sshPass 密码
+	 * @return SshjSftp
 	 */
-	public SshjSftp(final String sshHost, final String sshUser, final String sshPass) {
-		this(new FtpConfig(sshHost, 22, sshUser, sshPass, CharsetUtil.UTF_8));
+	public static SshjSftp of(final String sshHost, final String sshUser, final String sshPass) {
+		return of(sshHost, 22, sshUser, sshPass);
 	}
 
 	/**
@@ -75,9 +66,10 @@ public class SshjSftp extends AbstractFtp {
 	 * @param sshPort 端口
 	 * @param sshUser 用户名
 	 * @param sshPass 密码
+	 * @return SshjSftp
 	 */
-	public SshjSftp(final String sshHost, final int sshPort, final String sshUser, final String sshPass) {
-		this(new FtpConfig(sshHost, sshPort, sshUser, sshPass, CharsetUtil.UTF_8));
+	public static SshjSftp of(final String sshHost, final int sshPort, final String sshUser, final String sshPass) {
+		return of(sshHost, sshPort, sshUser, sshPass, DEFAULT_CHARSET);
 	}
 
 	/**
@@ -88,10 +80,16 @@ public class SshjSftp extends AbstractFtp {
 	 * @param sshUser 用户名
 	 * @param sshPass 密码
 	 * @param charset 编码
+	 * @return SshjSftp
 	 */
-	public SshjSftp(final String sshHost, final int sshPort, final String sshUser, final String sshPass, final Charset charset) {
-		this(new FtpConfig(sshHost, sshPort, sshUser, sshPass, charset));
+	public static SshjSftp of(final String sshHost, final int sshPort, final String sshUser, final String sshPass, final Charset charset) {
+		return new SshjSftp(new FtpConfig(Connector.of(sshHost, sshPort, sshUser, sshPass), charset));
 	}
+	//endregion
+
+	private SSHClient ssh;
+	private SFTPClient sftp;
+	private Session session;
 
 	/**
 	 * 构造
@@ -106,8 +104,9 @@ public class SshjSftp extends AbstractFtp {
 
 	/**
 	 * 构造
+	 *
 	 * @param sshClient {@link SSHClient}
-	 * @param charset 编码
+	 * @param charset   编码
 	 */
 	public SshjSftp(final SSHClient sshClient, final Charset charset) {
 		super(FtpConfig.of().setCharset(charset));
@@ -122,12 +121,9 @@ public class SshjSftp extends AbstractFtp {
 	 * @since 5.7.18
 	 */
 	public void init() {
-		this.ssh = SshjUtil.openClient(new Connector(
-			ftpConfig.getHost(),
-			ftpConfig.getPort(),
-			ftpConfig.getUser(),
-			ftpConfig.getPassword(),
-			ftpConfig.getConnectionTimeout()));
+		if(null == this.ssh){
+			this.ssh = SshjUtil.openClient(this.ftpConfig.getConnector());
+		}
 
 		try {
 			ssh.setRemoteCharset(ftpConfig.getCharset());
@@ -139,7 +135,7 @@ public class SshjSftp extends AbstractFtp {
 
 	@Override
 	public AbstractFtp reconnectIfTimeout() {
-		if (StrUtil.isBlank(this.ftpConfig.getHost())) {
+		if (StrUtil.isBlank(this.ftpConfig.getConnector().getHost())) {
 			throw new FtpException("Host is blank!");
 		}
 		try {
@@ -235,14 +231,29 @@ public class SshjSftp extends AbstractFtp {
 		}
 	}
 
+	/**
+	 * 读取远程文件输入流
+	 *
+	 * @param path 远程文件路径
+	 * @return {@link InputStream}
+	 */
+	@Override
+	public InputStream getFileStream(final String path) {
+		final RemoteFile remoteFile;
+		try {
+			remoteFile = sftp.open(path);
+		} catch (final IOException e) {
+			throw new IORuntimeException(e);
+		}
+
+		return remoteFile.new ReadAheadRemoteFileInputStream(16);
+	}
+
 	@Override
 	public void close() {
-		try {
-			sftp.close();
-			ssh.disconnect();
-		} catch (final IOException e) {
-			throw new FtpException(e);
-		}
+		IoUtil.closeQuietly(this.session);
+		IoUtil.closeQuietly(this.sftp);
+		IoUtil.closeQuietly(this.ssh);
 	}
 
 	/**
@@ -272,16 +283,36 @@ public class SshjSftp extends AbstractFtp {
 	 * @since 5.7.19
 	 */
 	public String command(final String exec) {
-		Session session = null;
+		final Session session = this.initSession();
+
+		Session.Command command = null;
 		try {
-			session = ssh.startSession();
-			final Session.Command command = session.exec(exec);
+			command = session.exec(exec);
 			final InputStream inputStream = command.getInputStream();
-			return IoUtil.read(inputStream, DEFAULT_CHARSET);
+			return IoUtil.read(inputStream, this.ftpConfig.getCharset());
 		} catch (final Exception e) {
 			throw new FtpException(e);
 		} finally {
-			IoUtil.closeQuietly(session);
+			IoUtil.closeQuietly(command);
 		}
+	}
+
+	/**
+	 * 初始化Session并返回
+	 *
+	 * @return session
+	 */
+	private Session initSession() {
+		Session session = this.session;
+		if (null == session || !session.isOpen()) {
+			IoUtil.closeQuietly(session);
+			try {
+				session = this.ssh.startSession();
+			} catch (final Exception e) {
+				throw new FtpException(e);
+			}
+			this.session = session;
+		}
+		return session;
 	}
 }

@@ -47,10 +47,6 @@
 -------------------------------------------------------------------------------
 
 <p align="center">
-	特别赞助：<br>
-	<a href="https://vue.misboot.com/#/user/Login?from=hutool4">
-		<img style="width: 45%" alt="" src="https://plus.hutool.cn/images/ad/misboot/misboot-banner.jpg"/>
-	</a>
 	<a href="#"><img style="width: 45%" alt="" src="https://plus.hutool.cn/images/zanzhu.jpg"/></a>
 </p>
 
@@ -106,7 +102,7 @@
 
 ## 📝文档
 
-[📘中文文档](https://www.hutool.cn/docs/)
+[📘中文文档](https://doc.hutool.cn/pages/index/)
 
 [📘中文备用文档](https://plus.hutool.cn/docs/#/)
 
@@ -143,21 +139,21 @@
 <dependency>
 	<groupId>org.dromara.hutool</groupId>
 	<artifactId>hutool-all</artifactId>
-	<version>6.0.0-M9</version>
+	<version>6.0.0-M12</version>
 </dependency>
 ```
 
 ### 🍐Gradle
 
 ```
-implementation 'org.dromara.hutool:hutool-all:6.0.0-M9'
+implementation 'org.dromara.hutool:hutool-all:6.0.0-M12'
 ```
 
 ### 📥下载jar
 
 点击以下链接，下载`hutool-all-X.X.X.jar`即可：
 
-- [Maven中央库](https://repo1.maven.org/maven2/org/dromara/hutool/hutool-all/6.0.0-M9/)
+- [Maven中央库](https://repo1.maven.org/maven2/org/dromara/hutool/hutool-all/6.0.0-M12/)
 
 > 🔔️注意
 > Hutool 6.x支持JDK8+，对Android平台没有测试，不能保证所有工具类或工具方法可用。

@@ -13,14 +13,14 @@
 package org.dromara.hutool.core.io.file;
 
 import org.dromara.hutool.core.io.IORuntimeException;
-import org.dromara.hutool.core.io.watch.SimpleWatcher;
+import org.dromara.hutool.core.io.watch.watchers.SimpleWatcher;
 import org.dromara.hutool.core.func.SerConsumer;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
 import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
 
 /**
  * 行处理的Watcher实现
@@ -53,7 +53,7 @@ public class LineReadWatcher extends SimpleWatcher implements Runnable {
 	}
 
 	@Override
-	public void onModify(final WatchEvent<?> event, final Path currentPath) {
+	public void onModify(final WatchEvent<?> event, final WatchKey key) {
 		final RandomAccessFile randomAccessFile = this.randomAccessFile;
 		final Charset charset = this.charset;
 		final SerConsumer<String> lineHandler = this.lineHandler;

@@ -13,7 +13,6 @@
 package org.dromara.hutool.core.thread;
 
 import org.dromara.hutool.core.exception.HutoolException;
-import org.dromara.hutool.core.lang.Console;
 
 import java.io.Closeable;
 import java.util.LinkedHashSet;
@@ -233,7 +232,7 @@ public class SyncFinisher implements Closeable {
 	/**
 	 * 工作者，为一个线程
 	 *
-	 * @author xiaoleilu
+	 * @author Looly
 	 */
 	public abstract class Worker implements Runnable {
 

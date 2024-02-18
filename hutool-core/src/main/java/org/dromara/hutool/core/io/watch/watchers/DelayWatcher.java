@@ -17,10 +17,7 @@ import org.dromara.hutool.core.io.watch.Watcher;
 import org.dromara.hutool.core.lang.Assert;
 import org.dromara.hutool.core.thread.ThreadUtil;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchService;
+import java.nio.file.*;
 import java.util.Set;
 
 /**
@@ -35,22 +32,30 @@ import java.util.Set;
  */
 public class DelayWatcher implements Watcher {
 
-	/** Path集合。此集合用于去重在指定delay内多次触发的文件Path */
+	/**
+	 * Path集合。此集合用于去重在指定delay内多次触发的文件Path
+	 */
 	private final Set<Path> eventSet = new ConcurrentHashSet<>();
-	/** 实际处理 */
+	/**
+	 * 实际处理
+	 */
 	private final Watcher watcher;
-	/** 延迟，单位毫秒 */
+	/**
+	 * 延迟，单位毫秒
+	 */
 	private final long delay;
 
 	//---------------------------------------------------------------------------------------------------------- Constructor start
+
 	/**
 	 * 构造
+	 *
 	 * @param watcher 实际处理触发事件的监视器{@link Watcher}，不可以是{@code DelayWatcher}
-	 * @param delay 延迟时间，单位毫秒
+	 * @param delay   延迟时间，单位毫秒
 	 */
 	public DelayWatcher(final Watcher watcher, final long delay) {
 		Assert.notNull(watcher);
-		if(watcher instanceof DelayWatcher) {
+		if (watcher instanceof DelayWatcher) {
 			throw new IllegalArgumentException("Watcher must not be a DelayWatcher");
 		}
 		this.watcher = watcher;
@@ -59,58 +64,60 @@ public class DelayWatcher implements Watcher {
 	//---------------------------------------------------------------------------------------------------------- Constructor end
 
 	@Override
-	public void onModify(final WatchEvent<?> event, final Path currentPath) {
-		if(this.delay < 1) {
-			this.watcher.onModify(event, currentPath);
-		}else {
-			onDelayModify(event, currentPath);
+	public void onModify(final WatchEvent<?> event, final WatchKey key) {
+		if (this.delay < 1) {
+			this.watcher.onModify(event, key);
+		} else {
+			onDelayModify(event, key);
 		}
 	}
 
 	@Override
-	public void onCreate(final WatchEvent<?> event, final Path currentPath) {
-		watcher.onCreate(event, currentPath);
+	public void onCreate(final WatchEvent<?> event, final WatchKey key) {
+		watcher.onCreate(event, key);
 	}
 
 	@Override
-	public void onDelete(final WatchEvent<?> event, final Path currentPath) {
-		watcher.onDelete(event, currentPath);
+	public void onDelete(final WatchEvent<?> event, final WatchKey key) {
+		watcher.onDelete(event, key);
 	}
 
 	@Override
-	public void onOverflow(final WatchEvent<?> event, final Path currentPath) {
-		watcher.onOverflow(event, currentPath);
+	public void onOverflow(final WatchEvent<?> event, final WatchKey key) {
+		watcher.onOverflow(event, key);
 	}
 
 	//---------------------------------------------------------------------------------------------------------- Private method start
+
 	/**
 	 * 触发延迟修改
+	 *
 	 * @param event 事件
-	 * @param currentPath 事件发生的当前Path路径
+	 * @param key   {@link WatchKey}
 	 */
-	private void onDelayModify(final WatchEvent<?> event, final Path currentPath) {
-		final Path eventPath = Paths.get(currentPath.toString(), event.context().toString());
-		if(eventSet.contains(eventPath)) {
+	private void onDelayModify(final WatchEvent<?> event, final WatchKey key) {
+		final Path eventPath = Paths.get(key.watchable().toString(), event.context().toString());
+		if (eventSet.contains(eventPath)) {
 			//此事件已经被触发过，后续事件忽略，等待统一处理。
 			return;
 		}
 
 		//事件第一次触发，此时标记事件，并启动处理线程延迟处理，处理结束后会删除标记
 		eventSet.add(eventPath);
-		startHandleModifyThread(event, currentPath);
+		startHandleModifyThread(event, key);
 	}
 
 	/**
 	 * 开启处理线程
 	 *
 	 * @param event 事件
-	 * @param currentPath 事件发生的当前Path路径
+	 * @param key   事件发生的当前WatchKey
 	 */
-	private void startHandleModifyThread(final WatchEvent<?> event, final Path currentPath) {
+	private void startHandleModifyThread(final WatchEvent<?> event, final WatchKey key) {
 		ThreadUtil.execute(() -> {
 			ThreadUtil.sleep(delay);
-			eventSet.remove(Paths.get(currentPath.toString(), event.context().toString()));
-			watcher.onModify(event, currentPath);
+			eventSet.remove(Paths.get(key.watchable().toString(), event.context().toString()));
+			watcher.onModify(event, key);
 		});
 	}
 	//---------------------------------------------------------------------------------------------------------- Private method end

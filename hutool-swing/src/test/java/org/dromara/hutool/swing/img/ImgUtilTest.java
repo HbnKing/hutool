@@ -21,10 +21,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.imageio.ImageIO;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Image;
-import java.awt.Rectangle;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -95,11 +92,19 @@ public class ImgUtilTest {
 		ImgUtil.pressText(//
 				FileUtil.file("d:/test/2.jpg"), //
 				FileUtil.file("d:/test/2_result.png"), //
-				"版权所有", Color.RED, //
-				new Font("黑体", Font.BOLD, 100), //
-				0, //
-				0, //
-				1f);
+				DisplayText.of("版权所有", Color.RED, new Font("黑体", Font.BOLD, 100), new Point(0, 0), 1f));
+	}
+
+	@Test
+	@Disabled
+	public void pressImageFullScreenTest() {
+		ImgUtil.pressImageFull(new File("/Users/imashimaro/Downloads/Background.png"),
+				new File("/Users/imashimaro/Downloads/Background_logo.png"),
+				new File("/Users/imashimaro/Downloads/logo.png"),
+				2,
+				30,
+				0.5F);
+
 	}
 
 	@Test

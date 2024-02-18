@@ -19,9 +19,6 @@ import org.dromara.hutool.core.date.format.FastDateFormat;
 import org.dromara.hutool.core.date.format.GlobalCustomFormat;
 import org.dromara.hutool.core.date.format.parser.*;
 import org.dromara.hutool.core.lang.Assert;
-import org.dromara.hutool.core.math.NumberUtil;
-import org.dromara.hutool.core.regex.PatternPool;
-import org.dromara.hutool.core.regex.ReUtil;
 import org.dromara.hutool.core.text.StrUtil;
 import org.dromara.hutool.core.text.split.SplitUtil;
 
@@ -40,22 +37,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 时间工具类
+ * 日期时间工具类
  *
- * @author xiaoleilu
+ * @author Looly
  * @see TimeUtil java8日志工具类
  * @see DatePattern 日期常用格式工具类
  */
 public class DateUtil extends CalendarUtil {
-
-	/**
-	 * java.util.Date EEE MMM zzz 缩写数组
-	 */
-	private final static String[] wtb = { //
-			"sun", "mon", "tue", "wed", "thu", "fri", "sat", // 星期
-			"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec", // 月份
-			"gmt", "ut", "utc", "est", "edt", "cst", "cdt", "mst", "mdt", "pst", "pdt"// 时间标准
-	};
 
 	// region  ----- date
 	/**
@@ -816,26 +804,15 @@ public class DateUtil extends CalendarUtil {
 		// 去掉两边空格并去掉中文日期中的“日”和“秒”，以规范长度
 		dateStr = StrUtil.removeAll(dateStr.trim(), '日', '秒');
 
-		if (NumberUtil.isNumber(dateStr)) {
-			// 纯数字形式
-			return PureDateParser.INSTANCE.parse(dateStr);
-		} else if (ReUtil.isMatch(PatternPool.TIME, dateStr)) {
-			// HH:mm:ss 或者 HH:mm 时间格式匹配单独解析
-			return TimeParser.INSTANCE.parse(dateStr);
-		} else if (StrUtil.containsAnyIgnoreCase(dateStr, wtb)) {
-			// JDK的Date对象toString默认格式，类似于：
-			// Tue Jun 4 16:25:15 +0800 2019
-			// Thu May 16 17:57:18 GMT+08:00 2019
-			// Wed Aug 01 00:00:00 CST 2012
-			return CSTDateParser.INSTANCE.parse(dateStr);
-		} else if (StrUtil.contains(dateStr, 'T')) {
-			// ISO8601标准时间
-			return ISO8601DateParser.INSTANCE.parse(dateStr);
+		final Date result = RegisterDateParser.INSTANCE.parse(dateStr);
+		if(null != result){
+			return date(result);
 		}
 
 		//标准日期格式（包括单个数字的日期时间）
 		dateStr = normalize(dateStr);
-		if (ReUtil.isMatch(DatePattern.REGEX_NORM, dateStr)) {
+
+		if (NormalDateParser.INSTANCE.test(dateStr)) {
 			return NormalDateParser.INSTANCE.parse(dateStr);
 		}
 

@@ -12,15 +12,15 @@
 
 package org.dromara.hutool.db.ds.hikari;
 
-import org.dromara.hutool.core.text.StrUtil;
-import org.dromara.hutool.db.ds.AbstractDSFactory;
-import org.dromara.hutool.db.ds.DSKeys;
-import org.dromara.hutool.setting.Setting;
-import org.dromara.hutool.setting.props.Props;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.dromara.hutool.core.map.MapUtil;
+import org.dromara.hutool.db.config.ConnectionConfig;
+import org.dromara.hutool.db.ds.DSFactory;
+import org.dromara.hutool.setting.props.Props;
 
 import javax.sql.DataSource;
+import java.util.Properties;
 
 /**
  * HikariCP数据源工厂类
@@ -28,59 +28,47 @@ import javax.sql.DataSource;
  * @author Looly
  *
  */
-public class HikariDSFactory extends AbstractDSFactory {
+public class HikariDSFactory implements DSFactory {
 	private static final long serialVersionUID = -8834744983614749401L;
 
-	/**
-	 * 数据源名称：HikariCP
-	 */
-	public static final String DS_NAME = "HikariCP";
-
-	/**
-	 * 构造，使用默认配置文件
-	 */
-	public HikariDSFactory() {
-		this(null);
-	}
-
-	/**
-	 * 构造，使用自定义配置文件
-	 *
-	 * @param setting 配置
-	 */
-	public HikariDSFactory(final Setting setting) {
-		super(DS_NAME, HikariDataSource.class, setting);
+	@Override
+	public String getDataSourceName() {
+		return "HikariCP";
 	}
 
 	@Override
-	protected DataSource createDataSource(final String jdbcUrl, final String driver, final String user, final String pass, final Setting poolSetting) {
-		// remarks等特殊配置，since 5.3.8
-		final Props connProps = new Props();
-		String connValue;
-		for (final String key : DSKeys.KEY_CONN_PROPS) {
-			connValue = poolSetting.getAndRemove(key);
-			if(StrUtil.isNotBlank(connValue)){
-				connProps.setProperty(key, connValue);
-			}
-		}
+	public DataSource createDataSource(final ConnectionConfig<?> config) {
+		final Props props = new Props();
 
-		final Props config = new Props();
-		config.putAll(poolSetting);
-
-		config.put("jdbcUrl", jdbcUrl);
+		// 基本信息
+		props.put("jdbcUrl", config.getUrl());
+		final String driver = config.getDriver();
 		if (null != driver) {
-			config.put("driverClassName", driver);
+			props.put("driverClassName", driver);
 		}
+		final String user = config.getUser();
 		if (null != user) {
-			config.put("username", user);
+			props.put("username", user);
 		}
+		final String pass = config.getPass();
 		if (null != pass) {
-			config.put("password", pass);
+			props.put("password", pass);
 		}
 
-		final HikariConfig hikariConfig = new HikariConfig(config);
-		hikariConfig.setDataSourceProperties(connProps);
+		// 连接池信息
+		final Properties poolProps = config.getPoolProps();
+		if(MapUtil.isNotEmpty(poolProps)){
+			props.putAll(poolProps);
+		}
+
+		final HikariConfig hikariConfig = new HikariConfig(props);
+		// 连接信息
+		final Properties connProps = config.getConnProps();
+		if(MapUtil.isNotEmpty(connProps)){
+			hikariConfig.setDataSourceProperties(connProps);
+		}
 
 		return new HikariDataSource(hikariConfig);
 	}
+
 }

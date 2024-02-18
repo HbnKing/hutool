@@ -15,8 +15,8 @@ package org.dromara.hutool.core.text;
 import org.dromara.hutool.core.array.ArrayUtil;
 import org.dromara.hutool.core.collection.CollUtil;
 import org.dromara.hutool.core.comparator.VersionComparator;
-import org.dromara.hutool.core.lang.Assert;
 import org.dromara.hutool.core.func.SerFunction;
+import org.dromara.hutool.core.lang.Assert;
 import org.dromara.hutool.core.math.NumberUtil;
 import org.dromara.hutool.core.regex.ReUtil;
 import org.dromara.hutool.core.text.finder.CharFinder;
@@ -46,6 +46,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * {@link CharSequence} 相关工具类封装，包括但不限于：
@@ -210,6 +212,12 @@ public class CharSequenceUtil extends StrValidator {
 	 *
 	 * <p>
 	 * 注意，和{@link String#trim()}不同，此方法使用{@link CharUtil#isBlankChar(char)} 来判定空白， 因而可以除去英文字符集之外的其它空白，如中文空格。
+	 * <ul>
+	 *     <li>去除字符串空格罗列相关如下：</li>
+	 *     <li>{@link StrUtil#trimPrefix(CharSequence)}去除头部空格</li>
+	 *     <li>{@link StrUtil#trimSuffix(CharSequence)}去除尾部空格</li>
+	 *     <li>{@link StrUtil#cleanBlank(CharSequence)}去除头部、尾部、中间空格</li>
+	 * </ul>
 	 *
 	 * <pre>
 	 * trim(null)          = null
@@ -1323,7 +1331,7 @@ public class CharSequenceUtil extends StrValidator {
 	 * @see #appendIfMissing(CharSequence, CharSequence, CharSequence...)
 	 */
 	public static String addSuffixIfNot(final CharSequence str, final CharSequence suffix) {
-		return appendIfMissing(str, suffix, suffix);
+		return appendIfMissing(str, suffix);
 	}
 	// endregion
 
@@ -2030,7 +2038,7 @@ public class CharSequenceUtil extends StrValidator {
 	}
 
 	/**
-	 * 给定字符串是否与提供的中任一字符串相同（忽略大小写），相同则返回{@code true}，没有相同的返回{@code false}<br>
+	 * 给定字符串是否与提供的中任意一个字符串相同（忽略大小写），相同则返回{@code true}，没有相同的返回{@code false}<br>
 	 * 如果参与比对的字符串列表为空，返回{@code false}
 	 *
 	 * @param str1 给定需要检查的字符串
@@ -2829,7 +2837,7 @@ public class CharSequenceUtil extends StrValidator {
 	}
 
 	/**
-	 * 如果给定字符串不是以给定的一个或多个字符串为开头，则在首部添加起始字符串<br>
+	 * 如果给定字符串不是以给定的一个或多个字符串为开头，则在前面添加起始字符串<br>
 	 * 不忽略大小写
 	 *
 	 * @param str      被检查的字符串
@@ -3025,10 +3033,10 @@ public class CharSequenceUtil extends StrValidator {
 	 * @param pattern    用于匹配的正则式
 	 * @param replaceFun 决定如何替换的函数
 	 * @return 替换后的字符串
-	 * @see ReUtil#replaceAll(CharSequence, java.util.regex.Pattern, SerFunction)
+	 * @see ReUtil#replaceAll(CharSequence, Pattern, SerFunction)
 	 * @since 4.2.2
 	 */
-	public static String replace(final CharSequence str, final java.util.regex.Pattern pattern, final SerFunction<java.util.regex.Matcher, String> replaceFun) {
+	public static String replace(final CharSequence str, final Pattern pattern, final SerFunction<Matcher, String> replaceFun) {
 		return ReUtil.replaceAll(str, pattern, replaceFun);
 	}
 
@@ -3042,7 +3050,7 @@ public class CharSequenceUtil extends StrValidator {
 	 * @see ReUtil#replaceAll(CharSequence, String, SerFunction)
 	 * @since 4.2.2
 	 */
-	public static String replace(final CharSequence str, final String regex, final SerFunction<java.util.regex.Matcher, String> replaceFun) {
+	public static String replace(final CharSequence str, final String regex, final SerFunction<Matcher, String> replaceFun) {
 		return ReUtil.replaceAll(str, regex, replaceFun);
 	}
 
@@ -3112,6 +3120,45 @@ public class CharSequenceUtil extends StrValidator {
 			c = str.charAt(i);
 			builder.append(set.contains(c) ? replacedStr : c);
 		}
+		return builder.toString();
+	}
+
+	/**
+	 * 按照给定逻辑替换指定位置的字符，如字符大小写转换等
+	 *
+	 * @param str         字符串
+	 * @param index       位置，-1表示最后一个字符
+	 * @param replaceFunc 替换逻辑，给定原字符，返回新字符
+	 * @return 替换后的字符串
+	 * @since 6.0.0
+	 */
+	public static String replaceAt(final CharSequence str, int index, final Function<Character, Character> replaceFunc) {
+		if (str == null) {
+			return null;
+		}
+
+		// 支持负数
+		final int length = str.length();
+		if (index < 0) {
+			index += length;
+		}
+
+		final String string = str.toString();
+		if (index < 0 || index >= length) {
+			return string;
+		}
+
+		// 检查转换前后是否有编码，无变化则不转换，返回原字符串
+		final char c = string.charAt(index);
+		final Character newC = replaceFunc.apply(c);
+		if (c == newC) {
+			// 无变化，返回原字符串
+			return string;
+		}
+
+		// 此处不复用传入的CharSequence，防止修改原对象
+		final StringBuilder builder = new StringBuilder(str);
+		builder.setCharAt(index, replaceFunc.apply(c));
 		return builder.toString();
 	}
 	// endregion
@@ -3201,7 +3248,9 @@ public class CharSequenceUtil extends StrValidator {
 	}
 
 	/**
-	 * 截断字符串，使用其按照指定编码为字节后不超过maxBytes长度
+	 * 截断字符串，使用其按照指定编码为字节后不超过maxBytes长度<br>
+	 * 此方法用于截取总bytes数不超过指定长度，如果字符出没有超出原样输出，如果超出了，则截取掉超出部分，并可选添加...，
+	 * 但是添加“...”后总长度也不超过限制长度。
 	 *
 	 * @param str            原始字符串
 	 * @param charset        指定编码
@@ -3268,7 +3317,7 @@ public class CharSequenceUtil extends StrValidator {
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T extends CharSequence> T firstNonEmpty(final T... strs) {
-		return ArrayUtil.firstMatch(StrUtil::isNotEmpty, strs);
+		return ArrayUtil.firstMatch(CharSequenceUtil::isNotEmpty, strs);
 	}
 
 	/**
@@ -3282,7 +3331,7 @@ public class CharSequenceUtil extends StrValidator {
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T extends CharSequence> T firstNonBlank(final T... strs) {
-		return ArrayUtil.firstMatch(StrUtil::isNotBlank, strs);
+		return ArrayUtil.firstMatch(CharSequenceUtil::isNotBlank, strs);
 	}
 	// endregion
 
@@ -3303,6 +3352,81 @@ public class CharSequenceUtil extends StrValidator {
 	}
 
 	/**
+	 * 大写对应下标字母
+	 *
+	 * <pre>例如: str = name,index = 1, return nAme</pre>
+	 *
+	 * @param str   字符串
+	 * @param index 下标，支持负数，-1表示最后一个字符
+	 * @return 字符串
+	 */
+	public static String upperAt(final CharSequence str, int index) {
+		if (null == str) {
+			return null;
+		}
+
+		// 支持负数
+		final int length = str.length();
+		if (index < 0) {
+			index += length;
+		}
+
+		final String string = str.toString();
+		if (index < 0 || index >= length) {
+			return string;
+		}
+
+		final char c = str.charAt(index);
+		if (!Character.isLowerCase(c)) {
+			// 非小写不转换，某些字符非小写也非大写，一并略过
+			return string;
+		}
+
+		// 此处不复用传入的CharSequence，防止修改原对象
+		final StringBuilder builder = new StringBuilder(str);
+		builder.setCharAt(index, Character.toUpperCase(c));
+
+		return builder.toString();
+	}
+
+	/**
+	 * 小写对应下标字母<br>
+	 * 例如: str = NAME,index = 1, return NaME
+	 *
+	 * @param str   字符串
+	 * @param index 下标，支持负数，-1表示最后一个字符
+	 * @return 字符串
+	 */
+	public static String lowerAt(final CharSequence str, int index) {
+		if (str == null) {
+			return null;
+		}
+
+		// 支持负数
+		final int length = str.length();
+		if (index < 0) {
+			index += length;
+		}
+
+		final String string = str.toString();
+		if (index < 0 || index >= length) {
+			return string;
+		}
+
+		final char c = str.charAt(index);
+		if (!Character.isUpperCase(c)) {
+			// 非大写不转换，某些字符非小写也非大写，一并略过
+			return string;
+		}
+
+		// 此处不复用传入的CharSequence，防止修改原对象
+		final StringBuilder builder = new StringBuilder(str);
+		builder.setCharAt(index, Character.toLowerCase(c));
+
+		return builder.toString();
+	}
+
+	/**
 	 * 大写首字母<br>
 	 * 例如：str = name, return Name
 	 *
@@ -3310,16 +3434,7 @@ public class CharSequenceUtil extends StrValidator {
 	 * @return 字符串
 	 */
 	public static String upperFirst(final CharSequence str) {
-		if (null == str) {
-			return null;
-		}
-		if (str.length() > 0) {
-			final char firstChar = str.charAt(0);
-			if (Character.isLowerCase(firstChar)) {
-				return Character.toUpperCase(firstChar) + subSuf(str, 1);
-			}
-		}
-		return str.toString();
+		return upperAt(str, 0);
 	}
 
 	/**
@@ -3330,16 +3445,7 @@ public class CharSequenceUtil extends StrValidator {
 	 * @return 字符串
 	 */
 	public static String lowerFirst(final CharSequence str) {
-		if (null == str) {
-			return null;
-		}
-		if (str.length() > 0) {
-			final char firstChar = str.charAt(0);
-			if (Character.isUpperCase(firstChar)) {
-				return Character.toLowerCase(firstChar) + subSuf(str, 1);
-			}
-		}
-		return str.toString();
+		return lowerAt(str, 0);
 	}
 	// endregion
 
@@ -3478,6 +3584,17 @@ public class CharSequenceUtil extends StrValidator {
 		return NamingCase.toCamelCase(name, symbol);
 	}
 	// endregion
+
+	/**
+	 * 创建StringBuilder对象<br>
+	 * 如果对象本身为{@link StringBuilder}，直接返回，否则新建
+	 *
+	 * @param str {@link CharSequence}
+	 * @return StringBuilder对象
+	 */
+	public static StringBuilder builder(final CharSequence str) {
+		return str instanceof StringBuilder ? (StringBuilder) str : new StringBuilder(str);
+	}
 
 	/**
 	 * 创建StringBuilder对象

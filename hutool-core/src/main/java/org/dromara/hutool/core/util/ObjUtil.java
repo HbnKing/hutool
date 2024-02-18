@@ -34,6 +34,8 @@ import java.util.function.Supplier;
 
 /**
  * 对象工具类，包括判空、克隆、序列化等操作
+ * <br>
+ * 原数组相关操作见：{@link ArrayUtil#hasBlank(CharSequence...)}、{@link ArrayUtil#isAllBlank(CharSequence...)}等等
  *
  * @author Looly
  */
@@ -219,7 +221,7 @@ public class ObjUtil {
 	 *     <li>{@code null}：默认返回{@code true}；</li>
 	 *     <li>数组：等同于{@link ArrayUtil#isEmpty(Object)}；</li>
 	 *     <li>{@link CharSequence}：等同于{@link CharSequenceUtil#isEmpty(CharSequence)}；</li>
-	 *     <li>{@link Collection}：等同于{@link CollUtil#isEmpty(Collection)}；</li>
+		 *     <li>{@link Collection}：等同于{@link CollUtil#isEmpty(Collection)}；</li>
 	 *     <li>{@link Map}：等同于{@link MapUtil#isEmpty(Map)}；</li>
 	 *     <li>
 	 *         {@link Iterator}或{@link Iterable}：等同于{@link IterUtil#isEmpty(Iterator)}、
@@ -362,19 +364,19 @@ public class ObjUtil {
 	 */
 	public static <T> T clone(final T obj) {
 		final T result = ArrayUtil.clone(obj);
-		if(null != result){
+		if (null != result) {
 			// 数组
 			return result;
 		}
 
 		if (obj instanceof Cloneable) {
-			try{
+			try {
 				return MethodUtil.invoke(obj, "clone");
-			} catch (final HutoolException e){
-				if(e.getCause() instanceof IllegalAccessException){
+			} catch (final HutoolException e) {
+				if (e.getCause() instanceof IllegalAccessException) {
 					// JDK9+下可能无权限
 					return cloneByStream(obj);
-				}else {
+				} else {
 					throw e;
 				}
 			}

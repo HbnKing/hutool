@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  * <p>
  * 比如去掉指定标签（例如广告栏等）、去除JS、去掉样式等等，这些操作都可以使用此工具类完成。
  *
- * @author xiaoleilu
+ * @author Looly
  */
 public class HtmlUtil {
 
@@ -189,14 +189,16 @@ public class HtmlUtil {
 			regex = StrUtil.format("(?i)(\\s*{}\\s*=\\s*)" +
 				"(" +
 				// name="xxxx"
-				"([\"][^\"]+?[\"]\\s*)|" +
-				// name=xxx >
-				"([^>]+?\\s+(?=>))|" +
-				// name=xxx> 或者 name=xxx name2=xxx
-				"([^>]+?(?=\\s|>))" +
+				"([\"][^\"]+?[\"])|" +
+				// name=xxx > 或者 name=xxx> 或者 name=xxx name2=xxx
+				"([^>]+?\\s*(?=\\s|>))" +
 				")", attr);
 			content = content.replaceAll(regex, StrUtil.EMPTY);
 		}
+
+		// issue#I8YV0K 去除尾部空格
+		content = ReUtil.replaceAll(content, "\\s+(>|/>)", "$1");
+
 		return content;
 	}
 
